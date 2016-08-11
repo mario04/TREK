@@ -1,0 +1,6 @@
+eclipse.preferences.version=1
+environment/project/ilg.gnuarmeclipse.managedbuild.cross.config.elf.debug.588270513/PATH/delimiter=;
+environment/project/ilg.gnuarmeclipse.managedbuild.cross.config.elf.debug.588270513/PATH/operation=replace
+environment/project/ilg.gnuarmeclipse.managedbuild.cross.config.elf.debug.588270513/PATH/value=C\:\\STM32Toolchain\\gnu-arm\\4.9 2015q2\\bin;C\:\\Apps\\Sourcery_CodeBench_Lite_for_ARM_EABI\\bin;C\:/Program Files/Java/jre1.8.0_101/bin/server;C\:/Program Files/Java/jre1.8.0_101/bin;C\:/Program Files/Java/jre1.8.0_101/lib/amd64;C\:\\ProgramData\\Oracle\\Java\\javapath;C\:\\Windows\\system32;C\:\\Windows;C\:\\Windows\\System32\\Wbem;C\:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;C\:\\Apps\\eclipse
+environment/project/ilg.gnuarmeclipse.managedbuild.cross.config.elf.debug.588270513/append=true
+environment/project/ilg.gnuarmeclipse.managedbuild.cross.config.elf.debug.588270513/appendContributed=true
