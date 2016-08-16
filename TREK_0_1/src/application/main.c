@@ -559,11 +559,7 @@ int main(void)
 			instance_data[0].monitor = 0;
         }
 
-        if(instance_mode == TAG)
-        {
-        	rx = instancenewrangeReport();
-        }
-        else
+
         	rx = instancenewrange();
 
         //if there is a new ranging report received or a new range has been calculated, then prepare data

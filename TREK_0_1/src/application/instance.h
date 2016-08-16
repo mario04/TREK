@@ -438,7 +438,7 @@ void clearDistTable(int idx);
 void setTagDist(int tidx, int aidx);
 double getTagDist(int idx);
 
-// clear the status/ranging data 
+// clear the status/ranging data
 void instanceclearcounts(void) ;
 
 //-------------------------------------------------------------------------------------------------------------
@@ -474,7 +474,7 @@ void instancesettagsleepdelay(int rangingsleep);
 void instancesetreplydelay(int delayms);
 
 // set/get the instance roles e.g. Tag/Anchor/Listener
-void instancesetrole(int mode) ;                // 
+void instancesetrole(int mode) ;                //
 int instancegetrole(void) ;
 // get the DW1000 device ID (e.g. 0xDECA0130 for DW1000)
 uint32 instancereaddeviceid(void) ;                                 // Return Device ID reg, enables validation of physical device presence
