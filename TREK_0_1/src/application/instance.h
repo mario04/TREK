@@ -30,9 +30,21 @@ extern "C" {
 // once it receives a report or times out, before the next poll message is sent (before next ranging exchange is started).
 
 #define CORRECT_RANGE_BIAS  (1)     // Compensate for small bias due to uneven accumulator growth at close up high power
+#define WATCH_REPORT    (0)
+#define REPORT_IMP      (1)              //Report messages implementation. Tag will receive the TOF value from anchor in the slot time
+// Anchor
+//     WATCH_REPORT = 0; REPORT_IMP = 0
+//     WATCH_REPORT = 0; REPORT_IMP = 1
+
+// Tag
+//     WATCH_REPORT = 0; REPORT_IMP = 0
+//     WATCH_REPORT = 0; REPORT_IMP = 1
+//     WATCH_REPORT = 1; REPORT_IMP = 1
+
+
+#define UART_DEBUG (0)
 
 #define ANCTOANCTWR (0) //if set to 1 then anchor to anchor TWR will be done in the last slot
-#define REPORT_IMP 	(1) //Report messages implementation. Tag will receive the TOF value from anchor in the same slot time.
 /******************************************************************************************************************
 *******************************************************************************************************************
 *******************************************************************************************************************/
@@ -53,10 +65,11 @@ extern "C" {
 #define RTLS_DEMO_MSG_TAG_FINAL             (0x82)          // Tag final massage back to Anchor
 #define RTLS_DEMO_MSG_ANCH_REPORT			(0X2A)			// Anchor report message
 
+
 //lengths including the Decaranging Message Function Code byte
 #define TAG_POLL_MSG_LEN                    2				// FunctionCode(1), Range Num (1)
-#define ANCH_REPORT_MSG_LEN                 6               // FunctionCode(1), Range Num (1), Measured_TOF_Time(4)
 #define ANCH_RESPONSE_MSG_LEN               8               // FunctionCode(1), Sleep Correction Time (2), Measured_TOF_Time(4), Range Num (1) (previous)
+#define ANCH_REPORT_MSG_LEN                 6               // FunctionCode(1), Range Num (1), Measured_TOF_Time(4)
 #define TAG_FINAL_MSG_LEN                   33              // FunctionCode(1), Range Num (1), Poll_TxTime(5),
 															// Resp0_RxTime(5), Resp1_RxTime(5), Resp2_RxTime(5), Resp3_RxTime(5), Final_TxTime(5), Valid Response Mask (1)
 
@@ -93,11 +106,11 @@ extern "C" {
 #define NUM_EXPECTED_RESPONSES_ANC		(1) //anchors A0, A1 and A2 are involved in anchor to anchor ranging
 #define NUM_EXPECTED_RESPONSES_ANC0		(2) //anchor A0 expects response from A1 and A2
 
-// Anchor and Tags Addresses depends on GATEWAY_ANCHOR_ADDR and physical switches, other defines are just used in instance.c in if conditionals
 #define GATEWAY_ANCHOR_ADDR				(0x8000)
 #define A1_ANCHOR_ADDR					(0x8001)
 #define A2_ANCHOR_ADDR					(0x8002)
 #define A3_ANCHOR_ADDR					(0x8003)
+
 
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // NOTE: the maximum RX timeout is ~ 65ms
@@ -122,7 +135,7 @@ extern "C" {
 #define TOFR                                3				// ToF (n-1) 4 bytes
 #define TOFRN								7				// range number 1 byte
 #define POLL_RNUM                           1               // Poll message range number
-#define REPORT_RNUM							1
+#define REPORT_RNUM							1				// Report message range number
 #define TOFREP								2
 
 //this it the delay used for configuring the receiver on delay (wait for response delay)
@@ -131,6 +144,7 @@ extern "C" {
 #define RX_RESPONSE1_TURNAROUND (200) //takes about 200 us for the 1st response to come back (from A0)
 #define RX_RESPONSE1_TURNAROUND_6M81 (300) //takes about 100 us for response to come back
 #define RX_RESPONSE1_TURNAROUND_110K (300) //takes about 100 us for response to come back
+#define RX_REPORT1_TURNAROUND   (4000)
 
 //Tag will range to 3 or 4 anchors
 //Each ranging exchange will consist of minimum of 3 messages (Poll, Response, Final)
@@ -167,8 +181,9 @@ typedef enum inst_states
     TA_SLEEP_DONE,               //9
     TA_TXRESPONSE_SENT_POLLRX,    //10
     TA_TXRESPONSE_SENT_RESPRX,    //11
-    TA_TXRESPONSE_SENT_TORX,		  //12
-    TA_TXREPORT_WAIT_SEND
+    TA_TXRESPONSE_SENT_TORX,	//12
+	TA_TXREPORT_WAIT_SEND,		//13
+    TA_REPORT_END
 
 } INST_STATES;
 
@@ -323,7 +338,9 @@ typedef struct
 	int ancRespRxDelay ;
 
 	int fwtoTime_sy ;	//this is final message duration (longest out of ranging messages)
+	// The previous variable is not the final message duration. It is the duration of the response message plus some margin (700 us)
 	int fwtoTimeAnc_sy ;
+    int fwtoTime_syReport;
 	uint32 delayedReplyTime;		// delayed reply time of ranging-init/response/final message
 
     uint32 rxTimeouts ;
@@ -352,7 +369,6 @@ typedef struct
 	uint8	wait4ack ;				// if this is set to DWT_RESPONSE_EXPECTED, then the receiver will turn on automatically after TX completion
 
     int8   responseTO ;
-    int8	reportTO;
 	uint8   instToSleep;			// if set the instance will go to sleep before sending the blink/poll message
 	uint8	stopTimer;				// stop/disable an active timer
     uint8	instanceTimerEn;		// enable/start a timer
@@ -364,7 +380,6 @@ typedef struct
 	uint8   rxResponseMaskAnc;
 	uint8   rxResponseMask;			// bit mask - bit 0 = received response from anchor ID = 0, bit 1 from anchor ID = 1 etc...
 	uint8   rxResponseMaskReport;
-	uint8 	rxReportMask;
 	uint8	rangeNum;				// incremented for each sequence of ranges (each slot)
 	uint8	rangeNumA[MAX_TAG_LIST_SIZE];				// array which holds last range number from each tag
 	uint8	rangeNumAnc;			// incremented for each sequence of ranges (each slot) - anchor to anchor ranging
@@ -418,11 +433,15 @@ typedef struct
 	uint8 rxRespsIdx; //index into the array below (current tag (4bits)/seq number(4bits))
 	int8 rxResps[256];
 
-	uint8 rxRepIdx;
+    uint8 rxRepIdx;
 	int8 rxRep[256];
-	int8 rxReportMaskReport;
+	int8 rxReportMask;
+    int8 rxReportMaskReport;
+	int8 reportTO;
+    int8 test;
 
 	int dwIDLE; //set to 1 when the RST goes high after wake up (it is set in process_dwRSTn_irq)
+
 
 } instance_data_t ;
 

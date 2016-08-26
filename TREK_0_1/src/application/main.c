@@ -559,8 +559,13 @@ int main(void)
 			instance_data[0].monitor = 0;
         }
 
+#if WATCH_REPORT
+		rx = instancenewrangeReport();
+		//rx = instancenewrange();
+#else
 
-        	rx = instancenewrange();
+		rx = instancenewrange();
+#endif
 
         //if there is a new ranging report received or a new range has been calculated, then prepare data
         //to output over USB - Virtual COM port, and update the LCD
