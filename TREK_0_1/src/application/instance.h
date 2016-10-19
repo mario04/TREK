@@ -51,6 +51,7 @@ extern "C" {
 
 #define NUM_INST            1
 #define SPEED_OF_LIGHT      (299702547.0)     // in m/s in air
+#define NUM_COORD (3) // define the number of coordinates system -> defines if the localization is 2D or 3D
 #define MASK_40BIT			(0x00FFFFFFFFFF)  // DW1000 counter is 40 bits
 #define MASK_TXDTS			(0x00FFFFFFFE00)  //The TX timestamp will snap to 8 ns resolution - mask lower 9 bits.
 
@@ -64,12 +65,14 @@ extern "C" {
 #define RTLS_DEMO_MSG_ANCH_FINAL            (0x73)          // Anchor final massage back to Anchor
 #define RTLS_DEMO_MSG_TAG_FINAL             (0x82)          // Tag final massage back to Anchor
 #define RTLS_DEMO_MSG_ANCH_REPORT			(0X2A)			// Anchor report message
+#define RTLS_DEMO_MSG_TAG_LOC               (0X3B)          // Tag loc message
 
 
 //lengths including the Decaranging Message Function Code byte
 #define TAG_POLL_MSG_LEN                    2				// FunctionCode(1), Range Num (1)
 #define ANCH_RESPONSE_MSG_LEN               8               // FunctionCode(1), Sleep Correction Time (2), Measured_TOF_Time(4), Range Num (1) (previous)
 #define ANCH_REPORT_MSG_LEN                 6               // FunctionCode(1), Range Num (1), Measured_TOF_Time(4)
+#define TAG_LOC_MSG_LEN                     26              // FunctionCode(1), Range Num(1), xPosition (8), yPosition(8), zPosition(8)
 #define TAG_FINAL_MSG_LEN                   33              // FunctionCode(1), Range Num (1), Poll_TxTime(5),
 															// Resp0_RxTime(5), Resp1_RxTime(5), Resp2_RxTime(5), Resp3_RxTime(5), Final_TxTime(5), Valid Response Mask (1)
 
@@ -137,6 +140,10 @@ extern "C" {
 #define POLL_RNUM                           1               // Poll message range number
 #define REPORT_RNUM							1				// Report message range number
 #define TOFREP								2
+#define LOC_RNUM                            1
+#define XLOC_POS                            2
+#define YLOC_POS                            10
+#define ZLOC_POS                            18
 
 //this it the delay used for configuring the receiver on delay (wait for response delay)
 //NOTE: this RX_RESPONSE_TURNAROUND is dependent on the microprocessor and code optimisations
@@ -160,14 +167,14 @@ typedef enum instanceModes{LISTENER, TAG, ANCHOR, ANCHOR_RNG, NUM_MODES} INST_MO
 //Anchor_Rng = the anchor (assumes a tag function) and ranges to another anchor - used in Anchor to Anchor TWR for auto positioning function
 
 #define TOF_REPORT_NUL 0
-#define TOF_REPORT_T2A 1
+#define TOF_REPORT_T2A 1    // This is for report to the serial port the results of ranging.
 #define TOF_REPORT_A2A 2
 
 #define INVALID_TOF (0xABCDFFFF)
 
 typedef enum inst_states
 {
-    TA_INIT, //0
+    TA_INIT,                    //0
 
     TA_TXE_WAIT,                //1 - state in which the instance will enter sleep (if ranging finished) or proceed to transmit a message
     TA_TXPOLL_WAIT_SEND,        //2 - configuration and sending of Poll message
@@ -178,11 +185,14 @@ typedef enum inst_states
     TA_RXE_WAIT,                //7
     TA_RX_WAIT_DATA,            //8
 
-    TA_SLEEP_DONE,               //9
-    TA_TXRESPONSE_SENT_POLLRX,    //10
-    TA_TXRESPONSE_SENT_RESPRX,    //11
+    TA_SLEEP_DONE,              //9
+    TA_TXRESPONSE_SENT_POLLRX,  //10
+    TA_TXRESPONSE_SENT_RESPRX,  //11
     TA_TXRESPONSE_SENT_TORX,	//12
 	TA_TXREPORT_WAIT_SEND,		//13
+    TA_TXLOC_WAIT_SEND,
+    TA_TAG2ANCH_CONF,
+    TA_ANCH2TAG_CONF,
     TA_REPORT_END
 
 } INST_STATES;
@@ -332,8 +342,11 @@ typedef struct
 
 	//this is the delay used for the delayed transmit
 	uint64 pollTx2FinalTxDelay ; //this is delay from Poll Tx time to Final Tx time in DW1000 units (40-bit)
+    uint64 pollTx2LocTxDelay;
 	uint64 pollTx2FinalTxDelayAnc ; //this is delay from Poll Tx time to Final Tx time in DW1000 units (40-bit) for Anchor to Anchor ranging
 	uint64 fixedReplyDelayAnc ;
+    uint64 fixedReportDelayAnc ;
+
 	uint32 fixedReplyDelayAncP ;
 	int ancRespRxDelay ;
 
@@ -341,7 +354,9 @@ typedef struct
 	// The previous variable is not the final message duration. It is the duration of the response message plus some margin (700 us)
 	int fwtoTimeAnc_sy ;
     int fwtoTime_syReport;
+    int fwtoTimeAnc_syReport;
 	uint32 delayedReplyTime;		// delayed reply time of ranging-init/response/final message
+    uint32 delayedReplyTimeLOC;
 
     uint32 rxTimeouts ;
 
@@ -439,11 +454,13 @@ typedef struct
     int8 rxReportMaskReport;
 	int8 reportTO;
     int8 test;
-
+    double anch_pos_estimation[NUM_COORD]; // This must be double?? see the locatlization theread in order to see what kind the varible is it.
+    uint8 CoopMode; // Flag to active the cooperative mode
+    uint8 TimeToChangeToTag; // Time in which an anchor becomes a tag
 	int dwIDLE; //set to 1 when the RST goes high after wake up (it is set in process_dwRSTn_irq)
 
 
-} instance_data_t ;
+	} instance_data_t ;
 
 //-------------------------------------------------------------------------------------------------------------
 //
