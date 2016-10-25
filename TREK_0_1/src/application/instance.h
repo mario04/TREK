@@ -191,7 +191,6 @@ typedef enum inst_states
     TA_TXRESPONSE_SENT_TORX,	//12
 	TA_TXREPORT_WAIT_SEND,		//13
     TA_TXLOC_WAIT_SEND,
-    TA_TAG2ANCH_CONF,
     TA_ANCH2TAG_CONF,
     TA_REPORT_END
 
@@ -457,7 +456,16 @@ typedef struct
     double anch_pos_estimation[NUM_COORD]; // This must be double?? see the locatlization theread in order to see what kind the varible is it.
     uint8 CoopMode; // Flag to active the cooperative mode
     uint8 TimeToChangeToTag; // Time in which an anchor becomes a tag
+    uint8 TimeToChangeToAnch; // Time in which a tag becomes an anchor
 	int dwIDLE; //set to 1 when the RST goes high after wake up (it is set in process_dwRSTn_irq)
+
+    uint8 saved_rangeNumA;
+    uint8 saved_rangeNum;
+    int32 saved_tagSleepCorrection;
+    uint32 saved_delayedReplyTime;
+    uint32 saved_rxTimeouts;
+    uint8 saved_frameSN;
+    int saved_longTermRangeCount;
 
 
 	} instance_data_t ;

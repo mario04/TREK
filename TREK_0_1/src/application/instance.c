@@ -535,9 +535,7 @@ int testapprun(instance_data_t *inst, int message)
 					{
 						if(dw_event->type == DWT_SIG_RX_TIMEOUT) //got RX timeout - i.e. did not get the response (e.g. ACK)
 						{
-#if defined(DEBUG)
-							printf("RX timeout in TA_TX_WAIT_CONF (%d)\n", inst->previousState);
-#endif
+
 							//we need to wait for SIG_TX_DONE and then process the timeout and re-send the frame if needed
 							inst->gotTO = 1;
 						}
@@ -561,11 +559,6 @@ int testapprun(instance_data_t *inst, int message)
 #if REPORT_IMP
 
                     	inst->testAppState = TA_RXE_WAIT;
-
-#if UART_DEBUG
-                    	sprintf((char *)&dataseq[0], "RepRXEW \n");
-                    	uartWriteLineNoOS((char *) dataseq);
-#endif
                     	break;
                     }
                     else{
@@ -585,9 +578,6 @@ int testapprun(instance_data_t *inst, int message)
                 }
                 else if (inst->gotTO == 1) //timeout
                 {
-#if defined(DEBUG)
-					printf("got TO in TA_TX_WAIT_CONF\n");
-#endif
                     inst_processrxtimeout(inst);
                     inst->gotTO = 0;
 					inst->wait4ack = 0 ; //clear this
@@ -596,13 +586,22 @@ int testapprun(instance_data_t *inst, int message)
 #if REPORT_IMP
                 else if(inst->previousState == TA_TXREPORT_WAIT_SEND){
                 	inst->testAppState = TA_RXE_WAIT ;
-
-#if UART_DEBUG
-                	sprintf((char*)&dataseq[0], "RepConf\n ");
-                	uartWriteLineNoOS((char *) dataseq);
-#endif
                 	break;
                 }
+                else if (inst->previousState == TA_TXLOC_WAIT_SEND)
+                {
+                    if(inst->mode == TAG)
+					{
+						inst->TimeToChangeToAnch = TRUE;
+						inst->instToSleep = FALSE;
+						inst->testAppState = TA_TXE_WAIT;
+						inst->nextState = TA_TXPOLL_WAIT_SEND ;
+						break;
+					}
+					else{
+						instance_backtoanchor(inst);
+					}
+				}
 #endif
                 else
                 {
@@ -917,11 +916,6 @@ int testapprun(instance_data_t *inst, int message)
                             case RTLS_DEMO_MSG_ANCH_REPORT:
                             {
 
-#if UART_DEBUG
-                            	sprintf((char*)&dataseq[0], "RepState\n ");
-                            	uartWriteLineNoOS((char *) dataseq);
-#endif
-
                             	uint8 currentRangeNum = (messageData[REPORT_RNUM]);
                                 if(dw_event->type_pend == DWT_SIG_TX_PENDING)
                                 {
@@ -935,35 +929,24 @@ int testapprun(instance_data_t *inst, int message)
 
                                 }
                                 else{
-                                    // if(((TAG == inst->mode) && (inst->rxReportMask & 0x1)) ) //if A1's response received
-                                    // {
-                                    //     inst->testAppState = TA_TXLOC_WAIT_SEND; // send our response / the final
-                                    // }
+                                    if(TAG == inst->mode)
+                                    {
 
-                                    // else{
-                                    //     if(TAG == inst->mode)
-                                    //     {
-                                    //         inst->testAppState = TA_TXE_WAIT ; //go to TA_TXE_WAIT first to check if it's sleep time
-                                    //         inst->nextState = TA_TXPOLL_WAIT_SEND ;
-                                    //         //inst->nextState = TA_INIT;
-                                    //         inst->instToSleep = TRUE;
-                                    //     }
-                                    //     else
-                                    //     {
-                                    //         instance_backtoanchor(inst);
-                                    //     }
-                                    // }
-                                        if(TAG == inst->mode)
-                                        {
-                                            inst->testAppState = TA_TXE_WAIT ; //go to TA_TXE_WAIT first to check if it's sleep time
-                                            inst->nextState = TA_TXPOLL_WAIT_SEND ;
-                                            //inst->nextState = TA_INIT;
-                                            inst->instToSleep = TRUE;
-                                        }
-                                        else
-                                        {
-                                            instance_backtoanchor(inst);
-                                        }
+                                        inst->testAppState = TA_TXE_WAIT ; //go to TA_TXE_WAIT first to check if it's sleep time
+                                        inst->nextState = TA_TXLOC_WAIT_SEND ;
+                                        inst->newReportRange = instance_calcranges(&inst->tofArray_reported[0], MAX_ANCHOR_LIST_SIZE, TOF_REPORT_T2A, &inst->rxReportMask);
+                                        inst->rxReportMaskReport = inst->rxReportMask;
+                                        inst->rxReportMask = 0;
+                                        inst->newRangeTime = portGetTickCount() ;
+                                        //inst->instToSleep = TRUE;
+
+                                        inst->instToSleep = FALSE;
+                                        inst->TimeToChangeToAnch = TRUE;
+                                    }
+                                    else
+                                    {
+                                        instance_backtoanchor(inst);
+                                    }
                                 }
 
 
@@ -996,41 +979,38 @@ int testapprun(instance_data_t *inst, int message)
 
                             case RTLS_DEMO_MSG_TAG_LOC:
                             {
-                            	if(inst->mode == TAG) //tag should ignore any other Final from anchors
-                            	{
-									if (inst->shortAdd_idx == (A3_ANCHOR_ADDR & 0x3))
-									{
-										double tagPosx = 0;
-										double tagPosy = 0;
-										double tagPosz = 0;
-										if(inst->rangeNumA[srcAddr[0]&0x7] != messageData[LOC_RNUM]){
-											inst->testAppState = TA_RXE_WAIT ;
-											break;
-										}
-										inst->delayedReplyTime = 0 ;
-										memcpy(&tagPosx, &(messageData[XLOC_POS]), 8);
-										memcpy(&tagPosy, &(messageData[YLOC_POS]), 8);
-										memcpy(&tagPosz, &(messageData[ZLOC_POS]), 8);
 
-										inst->anch_pos_estimation[1] = tagPosy;
-										inst->anch_pos_estimation[2] = tagPosz;
+                                if(inst->mode == ANCHOR) //tag should ignore any other Final from anchors
+                                {
+                                    if (inst->shortAdd_idx == (A3_ANCHOR_ADDR & 0x3))
+                                        {
+                                            double tagPosx = 0;
+                                            double tagPosy = 0;
+                                            double tagPosz = 0;
+                                            if(inst->rangeNumA[srcAddr[0]&0x7] != messageData[LOC_RNUM]){
+                                                inst->testAppState = TA_RXE_WAIT ;
+                                                break;
+                                            }
+                                            inst->delayedReplyTime = 0 ;
+                                            memcpy(&tagPosx, &(messageData[XLOC_POS]), 8);
+                                            memcpy(&tagPosy, &(messageData[YLOC_POS]), 8);
+                                            memcpy(&tagPosz, &(messageData[ZLOC_POS]), 8);
 
-										// Code for cooperative localization
-										inst->testAppState = TA_TXPOLL_WAIT_SEND;
-										inst->tagSleepCorrection = 0;
-										instancesetrole(TAG);
-										inst->instanceAddress16 = inst->newRangeTagAddress;
-										dwt_setaddress16(inst->instanceAddress16);
-										dwt_enableframefilter(DWT_FF_DATA_EN | DWT_FF_ACK_EN); //allow data, ack frames
-										inst->done = INST_DONE_WAIT_FOR_NEXT_EVENT;
+                                            inst->anch_pos_estimation[0] = tagPosx;
+                                            inst->anch_pos_estimation[1] = tagPosy;
+                                            inst->anch_pos_estimation[2] = tagPosz;
+
+                                            // Code for cooperative localization
+                                            instance_backtoanchor(inst);
+                                            inst->done = INST_DONE_WAIT_FOR_NEXT_EVENT;
 
 
-									}
+                                        }
 
-							}
+                                }
 
-						}
-						break;
+                            }
+                            break;
 
 
 
@@ -1370,7 +1350,7 @@ void instancesetreplydelay(int delayus) //delay in us
         instance_data[instance].fwtoTimeAnc_syReport = respframe_syReport; //add some margin so we don't timeout too soon
 
 		instance_data[instance].fixedReplyDelayAnc = convertmicrosectodevicetimeu (respframe + RX_RESPONSE1_TURNAROUND_110K);
-        instance_data[instance].fixedReportDelayAnc = 2*(instance_data[instance].fixedReplyDelayAnc >> 8);
+        instance_data[instance].fixedReportDelayAnc = 1.5*(instance_data[instance].fixedReplyDelayAnc >> 8);
 
 
 		instance_data[instance].fixedReplyDelayAncP = (uint32) (((uint64) convertmicrosectodevicetimeu (preamblelen)) >> 8) + 16;
