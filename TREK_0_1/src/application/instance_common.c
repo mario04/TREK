@@ -25,13 +25,14 @@
 // -------------------------------------------------------------------------------------------------------------------
 
 double inst_tdist[MAX_TAG_LIST_SIZE] ;
-double inst_idist[MAX_ANCHOR_LIST_SIZE] ;
+double inst_idist[MAX_ANCHOR_LIST_SIZE];
 double inst_idistraw[MAX_ANCHOR_LIST_SIZE] ;
 instance_data_t instance_data[NUM_INST] ;
 
 void ancprepareresponse(uint16 sourceAddress, uint8 srcAddr_index, uint8 fcode_index, uint8 *frame, uint32 uTimeStamp);
 void ancprepareresponse2(uint16 sourceAddress, uint8 srcAddr_index, uint8 fcode_index, uint8 *frame);
 void ancpreparereport(uint16 sourceAddress, uint8 srcAddr_index, uint8 fcode_index, uint8 *frame);
+
 //int eventOutcount = 0;
 //int eventIncount = 0;
 
@@ -163,15 +164,16 @@ int instancegetrole(void)
 
 int instancenewrange(void)
 {
+
 	int x = instance_data[0].newRange;
     instance_data[0].newRange = TOF_REPORT_NUL;
     return x;
 }
-
 int instancenewrangeReport(void)
 {
-	int x = instance_data[0].newReportRange;
-	instance_data[0].newReportRange = TOF_REPORT_NUL;
+
+    int x = instance_data[0].newReportRange;
+    instance_data[0].newReportRange = TOF_REPORT_NUL;
     return x;
 }
 
@@ -210,13 +212,13 @@ void instanceclearcounts(void)
     for(i=0; i<MAX_ANCHOR_LIST_SIZE; i++)
 	{
     	instance_data[instance].tofArray[i] = INVALID_TOF;
-    	instance_data[instance].tofArray_reported[i] = INVALID_TOF;
+        instance_data[instance].tofArray_reported[i] = INVALID_TOF;
 	}
 
     for(i=0; i<MAX_TAG_LIST_SIZE; i++)
 	{
 		instance_data[instance].tof[i] = INVALID_TOF;
-		instance_data[instance].tof_reported[i] = INVALID_TOF;
+        instance_data[instance].tof_reported[i] = INVALID_TOF;
 	}
 
 } // end instanceclearcounts()
@@ -279,6 +281,9 @@ int instance_init(void)
     dwt_setcallbacks(instance_txcallback, instance_rxcallback);
 
     instance_data[instance].monitor = 0;
+    instance_data[instance].anch_pos_estimation[0] = 16.75;
+    instance_data[instance].anch_pos_estimation[1] = 0;
+    instance_data[instance].anch_pos_estimation[2] = 2.3;
 
     instance_data[instance].lateTX = 0;
     instance_data[instance].lateRX = 0;
@@ -292,10 +297,10 @@ int instance_init(void)
 #endif
     for(i=0; i<256; i++)
     {
-    	instance_data[instance].rxResps[i] = -10;
 #if REPORT_IMP
     	instance_data[instance].rxRep[i] = -10;
 #endif
+    	instance_data[instance].rxResps[i] = -10;
     }
 
     instance_data[instance].delayedReplyTime = 0;
@@ -412,7 +417,7 @@ void instance_config(instanceConfig_t *config, sfConfig_t *sfConfig)
 
     if(config->preambleLen == DWT_PLEN_64) //if preamble length is 64
 	{
-    	SPI_ConfigFastRate(SPI_BaudRatePrescaler_32); //reduce SPI to < 3MHz
+    	SPI_ConfigFastRate(SPI_BaudRatePrescaler_16); //reduce SPI to < 3MHz
 
 		dwt_loadopsettabfromotp(0);
 
@@ -437,6 +442,7 @@ void instance_config(instanceConfig_t *config, sfConfig_t *sfConfig)
 // -------------------------------------------------------------------------------------------------------------------
 // function to set the tag sleep time (in ms)
 //
+
 void instancesettagsleepdelay(int sleepdelay) //sleep in ms
 {
     int instance = 0 ;
@@ -621,8 +627,13 @@ void instance_txcallback(const dwt_callback_data_t *txd)
 
 	dw_event.uTimeStamp = portGetTickCount();
 
+
+                    // if (instance_data[0].test == 1 && instance_data[0].previousState == TA_TXPOLL_WAIT_SEND)
+                    // while(1);
+
 	if(txevent == DWT_SIG_TX_DONE)
 	{
+
 		//uint64 txtimestamp = 0;
 
 		//NOTE - we can only get TX good (done) while here
@@ -909,6 +920,7 @@ uint8 anctxorrxreenableReport(uint16 sourceAddress)
 
     if(instance_data[instance].reportTO == 0) //go back to RX without TO - ranging has finished. (wait for Final but no TO)
     {
+
         dwt_setrxtimeout(0); //reconfigure the timeout
         dwt_setpreambledetecttimeout(0);
         instance_data[instance].testAppState = TA_REPORT_END;
@@ -1321,7 +1333,8 @@ void instance_rxcallback(const dwt_callback_data_t *rxd)
 					case RTLS_DEMO_MSG_ANCH_RESP2:
 					{
 
-						//we are a tag
+
+                    	//we are a tag
 					    if(instance_data[instance].mode == TAG)
 					    {
 							uint8 index ;
@@ -1347,7 +1360,7 @@ void instance_rxcallback(const dwt_callback_data_t *rxd)
 							memcpy(&(instance_data[instance].msg_f.messageData[index]), rxTimeStamp, 5);
 						}
 						else //normal anchor mode
-						 {
+					    {
 							//got a response... (check if we got a Poll with the same range number as in this response)
 							if(RTLS_DEMO_MSG_ANCH_RESP == dw_event.msgu.frame[fcode_index])
 							{
@@ -1443,6 +1456,7 @@ void instance_rxcallback(const dwt_callback_data_t *rxd)
 
  					}
  					break;
+
                     case RTLS_DEMO_MSG_TAG_LOC:
                     {
                          if((instance_data[instance].mode == ANCHOR) && (instance_data[instance].shortAdd_idx != (A3_ANCHOR_ADDR & 0x3)))
@@ -1539,6 +1553,7 @@ void instance_rxcallback(const dwt_callback_data_t *rxd)
 		//led_off(LED_PC9);
 	}
 }
+
 #pragma GCC optimize ("O3")
 int instance_peekevent(void)
 {
@@ -1663,6 +1678,7 @@ void instance_clearevents(void)
 	//eventIncount = 0;
 }
 
+
 // -------------------------------------------------------------------------------------------------------------------
 #pragma GCC optimize ("O3")
 int instance_run(void)
@@ -1672,14 +1688,17 @@ int instance_run(void)
     int message = instance_peekevent(); //get any of the received events from ISR
 
 
+
+
+
 	while(done == INST_NOT_DONE_YET)
 	{
 		//int state = instance_data[instance].testAppState;
 		done = testapprun(&instance_data[instance], message) ;                                               // run the communications application
-
 		//we've processed message
 		message = 0;
 	}
+
 
 
 
@@ -1696,39 +1715,92 @@ int instance_run(void)
         	instance_data[instance].tagSleepCorrection2 = instance_data[instance].tagSleepCorrection;
         	instance_data[instance].tagSleepCorrection = 0; //clear the correction
             instance_data[instance].instanceTimerEn = 1; //start timer
+
+        if(instance_data[instance].testAppState != TA_SLEEP_DONE){
+
+
+            // Configuration to be an ANCHOR
+                instancesetrole(ANCHOR);
+                instance_data[instance].instanceAddress16 = A3_ANCHOR_ADDR;
+                 //set source address
+                 memcpy(instance_data[instance].eui64, &instance_data[instance].instanceAddress16, ADDR_BYTE_SIZE_S);
+                 dwt_seteui(instance_data[instance].eui64);
+                 instance_data[instance].shortAdd_idx = (instance_data[instance].instanceAddress16 & 0x3) ;
+                 dwt_setaddress16(instance_data[instance].instanceAddress16);
+
+                 if(instance_data[instance].instanceAddress16 == GATEWAY_ANCHOR_ADDR)
+                 {
+                         instance_data[instance].gatewayAnchor = TRUE;
+                 }
+
+                dwt_enableframefilter(DWT_FF_NOTYPE_EN); //allow data, ack frames;
+
+                 // First time anchor listens we don't do a delayed RX
+                 dwt_setrxaftertxdelay(0);
+                // //change to next state - wait to receive a message
+                 instance_clearevents();
+
+                instance_data[instance].testAppState = TA_RXE_WAIT ;
+
+                 dwt_setrxtimeout(0);
+                 dwt_setpreambledetecttimeout(0);
+                 //instanceconfigframeheader16(&instance_data[instance]);
+
+                 instance_data[instance].CoopMode = TRUE;
+                 instance_data[instance].wait4ack = 0;
+
+                // //save the important instance variables
+                 instance_data[instance].saved_rangeNumA = instance_data[instance].rangeNumA;
+                 instance_data[instance].saved_rangeNum = instance_data[instance].rangeNum;
+                 instance_data[instance].saved_tagSleepCorrection = instance_data[instance].tagSleepCorrection;
+                 instance_data[instance].saved_delayedReplyTime = instance_data[instance].delayedReplyTime;
+                 instance_data[instance].saved_rxTimeouts = instance_data[instance].rxTimeouts;
+                 instance_data[instance].saved_frameSN = instance_data[instance].frameSN;
+                 instance_data[instance].saved_longTermRangeCount = instance_data[instance].longTermRangeCount;
+
+                 instanceclearcounts();
+
+
+        }
+
         }
         instance_data[instance].stopTimer = 0 ; //clear the flag - timer can run if instancetimer_en set (set above)
         instance_data[instance].done = INST_NOT_DONE_YET;
     }
 
+//    if(done == INST_DONE_WAIT_FOR_NEXT_EVENT && instance_data[instance].RngFinish==1)
+//    {
+//    	return 1;
+//    }
+
     //check if timer has expired
     if((instance_data[instance].instanceTimerEn == 1) && (instance_data[instance].stopTimer == 0))
-        {
+    {
 
-    		if((portGetTickCount() - instance_data[instance].instanceWakeTime) > instance_data[instance].nextSleepPeriod)
-    		{
-                if(instance_data[instance].mode == TAG)
-                {
-        			event_data_t dw_event;
-        			instance_data[instance].instanceTimerEn = 0;
-        			dw_event.rxLength = 0;
-        			dw_event.type = 0;
-        			dw_event.type_save = 0x80 | DWT_SIG_RX_TIMEOUT;
-        			//printf("PC timeout DWT_SIG_RX_TIMEOUT\n");
-        			instance_putevent(dw_event, DWT_SIG_RX_TIMEOUT);
+		if((portGetTickCount() - instance_data[instance].instanceWakeTime) > instance_data[instance].nextSleepPeriod)
+		{
+            if(instance_data[instance].mode == TAG)
+            {
+    			event_data_t dw_event;
+    			instance_data[instance].instanceTimerEn = 0;
+    			dw_event.rxLength = 0;
+    			dw_event.type = 0;
+    			dw_event.type_save = 0x80 | DWT_SIG_RX_TIMEOUT;
+    			//printf("PC timeout DWT_SIG_RX_TIMEOUT\n");
+    			instance_putevent(dw_event, DWT_SIG_RX_TIMEOUT);
 
-        		}
+    		}
 
-                else if (instance_data[instance].mode == ANCHOR)
-                {
+            else if (instance_data[instance].mode == ANCHOR)
+            {
 
-                    instance_data[instance].testAppState = TA_ANCH2TAG_CONF;
-                    instance_clearevents();
-                    instance_data[instance].instanceTimerEn = 0;
-                    instance_data[instance].CoopMode = FALSE;
+                instance_data[instance].testAppState = TA_ANCH2TAG_CONF;
+                instance_clearevents();
+                instance_data[instance].instanceTimerEn = 0;
+                instance_data[instance].CoopMode = FALSE;
 
-                }
             }
+        }
 #if (ANCTOANCTWR == 1) //allow anchor to anchor ranging
         else if(instance_data[instance].mode == ANCHOR)
         {
@@ -1883,3 +1955,5 @@ Now have changed it to do a single instance only. With minimal code changes...(i
 Windows application should call instance_init() once and then in the "main loop" call instance_run().
 
 */
+
+

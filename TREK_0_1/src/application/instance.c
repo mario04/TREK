@@ -124,15 +124,12 @@ int testapprun(instance_data_t *inst, int message)
     switch (inst->testAppState)
     {
         case TA_INIT :
-#if defined(DEBUG)
-        	printf("TA_INIT\n") ;
-#endif
             switch (inst->mode)
             {
                 case TAG:
                 {
+                    inst->test = 0;
                 	uint16 sleep_mode = 0;
-
                     dwt_enableframefilter(DWT_FF_DATA_EN | DWT_FF_ACK_EN); //allow data, ack frames;
                     dwt_setpanid(inst->panID);
 
@@ -147,6 +144,9 @@ int testapprun(instance_data_t *inst, int message)
                     inst->nextState = TA_TXPOLL_WAIT_SEND;
                     inst->testAppState = TA_TXE_WAIT;
                     inst->instToSleep = TRUE ;
+                    inst->CoopMode = FALSE;
+                    inst->TimeToChangeToTag = FALSE;
+                    inst->TimeToChangeToAnch = FALSE;
 
                     inst->rangeNum = 0;
                     inst->tagSleepCorrection = 0;
@@ -164,6 +164,7 @@ int testapprun(instance_data_t *inst, int message)
 #endif
 				    instanceconfigframeheader16(inst);
 				    inst->instanceWakeTime = portGetTickCount();
+                    inst->done = INST_NOT_DONE_YET;
                 }
                 break;
                 case ANCHOR:
@@ -190,7 +191,9 @@ int testapprun(instance_data_t *inst, int message)
 					dwt_setrxaftertxdelay(0);
                     //change to next state - wait to receive a message
                     inst->testAppState = TA_RXE_WAIT ;
-
+                    inst->CoopMode = FALSE;
+                    inst->TimeToChangeToAnch = FALSE;
+                    inst->TimeToChangeToTag = FALSE;
                     dwt_setrxtimeout(0);
                     dwt_setpreambledetecttimeout(0);
                     instanceconfigframeheader16(inst);
@@ -292,13 +295,9 @@ int testapprun(instance_data_t *inst, int message)
             break;
 
         case TA_TXE_WAIT : //either go to sleep or proceed to TX a message
-#if defined(DEBUG)
-            printf("TA_TXE_WAIT\n") ;
-#endif
             //if we are scheduled to go to sleep before next transmission then sleep first.
-        	if((inst->nextState == TA_TXPOLL_WAIT_SEND)
-                    && (inst->instToSleep)  //go to sleep before sending the next poll/ starting new ranging exchange
-                    )
+        {
+        	if((inst->nextState == TA_TXPOLL_WAIT_SEND) && (inst->instToSleep))  //go to sleep before sending the next poll/ starting new ranging exchange)
             {
             	inst->rangeNum++; //increment the range number before going to sleep
                 //the app should put chip into low power state and wake up after tagSleepTime_ms time...
@@ -317,6 +316,7 @@ int testapprun(instance_data_t *inst, int message)
                     inst->rxReportMaskReport = inst->rxReportMask;
                     inst->rxReportMask = 0;
 
+
 #else
                     inst->newRange = instance_calcranges(&inst->tofArray[0], MAX_ANCHOR_LIST_SIZE, TOF_REPORT_T2A, &inst->rxResponseMask);
                     inst->rxResponseMaskReport = inst->rxResponseMask;
@@ -327,11 +327,22 @@ int testapprun(instance_data_t *inst, int message)
                 }
 
             }
-            else if ((inst->nextState == TA_INIT) && (inst->instToSleep)){
-                inst->done = INST_NOT_DONE_YET;
+
+            else if ((inst->TimeToChangeToAnch == TRUE) && (inst->nextState == TA_TXPOLL_WAIT_SEND) )
+            {
+                inst->rangeNum++;
+                inst->TimeToChangeToAnch = FALSE;
                 inst->instToSleep = FALSE ;
                 inst->testAppState = inst->nextState;
-                inst->nextState = 0; //clear
+                inst->CoopMode = FALSE;
+                inst->tagSleepCorrection = 0;
+
+                // inst->newReportRange = instance_calcranges(&inst->tofArray_reported[0], MAX_ANCHOR_LIST_SIZE, TOF_REPORT_T2A, &inst->rxReportMask);
+                // inst->rxReportMaskReport = inst->rxReportMask;
+                // inst->rxReportMask = 0;
+                inst->instanceWakeTime = portGetTickCount();
+
+                inst->done = INST_DONE_WAIT_FOR_NEXT_EVENT_TO;
 
 
             }
@@ -339,14 +350,15 @@ int testapprun(instance_data_t *inst, int message)
             {
                 inst->testAppState = inst->nextState;
                 inst->nextState = 0; //clear
+                inst->done = INST_DONE_WAIT_FOR_NEXT_EVENT;
+
             }
-            break ; // end case TA_TXE_WAIT
+        }
+
+        break ; // end case TA_TXE_WAIT
 
         case TA_TXPOLL_WAIT_SEND :
             {
-#if defined(DEBUG)
-            printf("TA_TXPOLL_WAIT_SEND\n") ;
-#endif
 
                 inst->msg_f.messageData[POLL_RNUM] = (inst->mode == TAG) ? inst->rangeNum : inst->rangeNumAnc; //copy new range number
             	inst->msg_f.messageData[FCODE] = (inst->mode == TAG) ? RTLS_DEMO_MSG_TAG_POLL : RTLS_DEMO_MSG_ANCH_POLL; //message function code (specifies if message is a poll, response or other...)
@@ -383,6 +395,9 @@ int testapprun(instance_data_t *inst, int message)
 
 				dwt_starttx(DWT_START_TX_IMMEDIATE | DWT_RESPONSE_EXPECTED); //transmit the frame
 
+                inst->monitor = 1;
+                inst->timeofTx = portGetTickCount();
+
                 inst->testAppState = TA_TX_WAIT_CONF ;  // wait confirmation
                 inst->previousState = TA_TXPOLL_WAIT_SEND ;
                 inst->done = INST_DONE_WAIT_FOR_NEXT_EVENT; //will use RX FWTO to time out (set above)
@@ -392,6 +407,7 @@ int testapprun(instance_data_t *inst, int message)
 
         case TA_TXFINAL_WAIT_SEND :
             {
+
             	//the final has the same range number as the poll (part of the same ranging exchange)
                 inst->msg_f.messageData[POLL_RNUM] = (inst->mode == TAG) ? inst->rangeNum : inst->rangeNumAnc;
                 //the mask is sent so the anchors know whether the response RX time is valid
@@ -417,10 +433,6 @@ int testapprun(instance_data_t *inst, int message)
 
 
             		inst->rxReportMask = 0;
-#if UART_DEBUG
-            		sprintf((char*)&dataseq[0], "RepFinal\n ");
-            		uartWriteLineNoOS((char *) dataseq); //send some data
-#endif
             	}
 #endif
 
@@ -429,6 +441,9 @@ int testapprun(instance_data_t *inst, int message)
                     // initiate the re-transmission
 					if(inst->mode == TAG)
 					{
+#if REPORT_IMP
+                        inst->TimeToChangeToAnch = TRUE;
+#endif
 						inst->testAppState = TA_TXE_WAIT ; //go to TA_TXE_WAIT first to check if it's sleep time
 						inst->nextState = TA_TXPOLL_WAIT_SEND ;
 					}
@@ -493,15 +508,86 @@ int testapprun(instance_data_t *inst, int message)
 
 
             }
-           instancesetantennadelays(); //this will update the antenna delay if it has changed
-           instancesettxpower(); // configure TX power if it has changed
+            instancesetantennadelays(); //this will update the antenna delay if it has changed
+            instancesettxpower(); // configure TX power if it has changed
+
+            if(inst->CoopMode == TRUE){
+                inst->done = INST_DONE_WAIT_FOR_NEXT_EVENT;
+            }
 
         }
 
         	break;
-
+        case TA_TXLOC_WAIT_SEND:{
+//
+//            osEvent  evt;
+//            localization_data * loc;
+//            //evt = osMessageGet(MsgLoc,1);
+//            evt = osMessageGet(MsgLoc,osWaitForever);
+//            inst->testAppState = TA_TX_WAIT_CONF;                                               // wait confirmation
+//            inst->previousState = TA_TXLOC_WAIT_SEND;
+//
+//            if (evt.status == osEventMessage)
+//            {
+//
+//
+//                loc = evt.value.p;
+//                if ((loc->estPos[0] != 0) && (loc->estPos[1] != 0) && (loc->estPos[2] != 0) )
+//                {
+//                    inst->anch_pos_estimation[0] = loc->estPos[0];
+//                    inst->anch_pos_estimation[1] = loc->estPos[1];
+//                    inst->anch_pos_estimation[2] = loc->estPos[2];
+//
+//                    inst->msg_f.messageData[LOC_RNUM] = inst->rangeNum;
+//                    inst->msg_f.messageData[FCODE] = RTLS_DEMO_MSG_TAG_LOC;
+//                    inst->psduLength = (TAG_LOC_MSG_LEN + FRAME_CRTL_AND_ADDRESS_S + FRAME_CRC);
+//                    inst->msg_f.seqNum = inst->frameSN++;
+//                    inst->msg_f.sourceAddr[0] = inst->eui64[0]; //copy the address
+//                    inst->msg_f.sourceAddr[1] = inst->eui64[1]; //copy the address
+//                    inst->msg_f.destAddr[0] = 0xff;  //set the destination address (broadcast == 0xffff)
+//                    inst->msg_f.destAddr[1] = 0xff;  //set the destination address (broadcast == 0xffff)
+//                    dwt_writetxdata(inst->psduLength, (uint8 *)  &inst->msg_f, 0) ; // write the frame data
+//                    // dwt_setrxaftertxdelay(0);
+//                    inst->delayedReplyTime = inst->delayedReplyTimeLOC;
+//                    if(instancesenddlypacket(inst, DWT_START_TX_DELAYED))
+//                    //if(instancesenddlypacket(inst, DWT_START_TX_IMMEDIATE))
+//
+//                    {
+//                        // initiate the re-transmission
+//                        if(inst->mode == TAG)
+//                        {
+//                            inst->TimeToChangeToAnch = TRUE;
+//                            inst->instToSleep = FALSE;
+//                            inst->testAppState = TA_TXE_WAIT ; //go to TA_TXE_WAIT first to check if it's sleep time
+//                            inst->nextState = TA_TXPOLL_WAIT_SEND ;
+//                        }
+//                        else
+//                        {
+//                            //A0 - failed to send Final
+//                            //A1 - failed to send Final
+//                            //go back to RX and behave as anchor
+//                            instance_backtoanchor(inst);
+//                        }
+//                        break; //exit this switch case...
+//                    }
+//                    else
+//                    {
+//
+//                        inst->testAppState = TA_TX_WAIT_CONF;                                               // wait confirmation
+//                        inst->previousState = TA_TXLOC_WAIT_SEND;
+//
+//                    }
+//                }
+//                // Show the localization.
+//
+//                inst->done = INST_DONE_WAIT_FOR_NEXT_EVENT;
+//
+//            }
+        }
+        break;
         case TA_REPORT_END:
         {
+
             inst->delayedReplyTime = 0;
             if(inst->rxRep[inst->rxRepIdx] >= 0)
             {
@@ -513,16 +599,47 @@ int testapprun(instance_data_t *inst, int message)
             inst->wait4ack = 0;
             inst->testAppState = TA_RXE_WAIT ;
 
+            if(inst->CoopMode == TRUE){
+                inst->done = INST_DONE_WAIT_FOR_NEXT_EVENT;
+            }
+
+
+        }
+        break;
+
+        case TA_ANCH2TAG_CONF:
+        {
+
+            dwt_forcetrxoff();
+            instancesetrole(TAG);
+            inst->instanceAddress16 = inst->newRangeTagAddress;
+            memcpy(inst->eui64, &inst->instanceAddress16, ADDR_BYTE_SIZE_S);
+            dwt_seteui(inst->eui64);
+            dwt_setaddress16(inst->instanceAddress16);
+            dwt_enableframefilter(DWT_FF_DATA_EN | DWT_FF_ACK_EN); //allow data, ack frames
+            //instanceconfigframeheader16(inst);
+
+            inst->testAppState = TA_TXPOLL_WAIT_SEND;
+            inst->CoopMode = FALSE;
+            inst->TimeToChangeToTag = FALSE;
+            inst->TimeToChangeToAnch = FALSE;
+
+            inst->instanceWakeTime = portGetTickCount();
+            inst->done = INST_NOT_DONE_YET;
+
+            memcpy(&(inst->rangeNumA),&(inst->saved_rangeNumA), 8);
+            inst->rangeNum = inst->saved_rangeNum;
+            inst->tagSleepCorrection = 0;
+            inst->delayedReplyTime = inst->saved_delayedReplyTime;
+            inst->rxTimeouts = inst->saved_rxTimeouts;
+            inst->frameSN = inst->saved_frameSN;
+            inst->longTermRangeCount = inst->saved_longTermRangeCount;
 
         }
         break;
 
 #endif
         case TA_TX_WAIT_CONF :
-#if defined(DEBUG)
-		   printf("TA_TX_WAIT_CONF %d m%d states %08x %08x\n", inst->previousState, message, dwt_read32bitreg(0x19), dwt_read32bitreg(0x0f)) ;
-#endif
-
                 {
 				event_data_t* dw_event = instance_getevent(11); //get and clear this event
 
@@ -531,11 +648,11 @@ int testapprun(instance_data_t *inst, int message)
                 //thus the reception of the ACK will be processed before the TX confirmation of the frame that requested it.
 				if(dw_event->type != DWT_SIG_TX_DONE) //wait for TX done confirmation
                 {
+
 					if(dw_event->type != 0)
 					{
 						if(dw_event->type == DWT_SIG_RX_TIMEOUT) //got RX timeout - i.e. did not get the response (e.g. ACK)
 						{
-
 							//we need to wait for SIG_TX_DONE and then process the timeout and re-send the frame if needed
 							inst->gotTO = 1;
 						}
@@ -550,10 +667,13 @@ int testapprun(instance_data_t *inst, int message)
 
                 }
 
+
                 inst->done = INST_NOT_DONE_YET;
+
 
                 if(inst->previousState == TA_TXFINAL_WAIT_SEND)
                 {
+
                     if(inst->mode == TAG)
                     {
 #if REPORT_IMP
@@ -578,6 +698,7 @@ int testapprun(instance_data_t *inst, int message)
                 }
                 else if (inst->gotTO == 1) //timeout
                 {
+
                     inst_processrxtimeout(inst);
                     inst->gotTO = 0;
 					inst->wait4ack = 0 ; //clear this
@@ -585,41 +706,47 @@ int testapprun(instance_data_t *inst, int message)
                 }
 #if REPORT_IMP
                 else if(inst->previousState == TA_TXREPORT_WAIT_SEND){
+
                 	inst->testAppState = TA_RXE_WAIT ;
+
                 	break;
                 }
                 else if (inst->previousState == TA_TXLOC_WAIT_SEND)
                 {
                     if(inst->mode == TAG)
-					{
-						inst->TimeToChangeToAnch = TRUE;
-						inst->instToSleep = FALSE;
-						inst->testAppState = TA_TXE_WAIT;
-						inst->nextState = TA_TXPOLL_WAIT_SEND ;
-						break;
-					}
-					else{
-						instance_backtoanchor(inst);
-					}
-				}
+                    {
+                        inst->TimeToChangeToAnch = TRUE;
+                        inst->instToSleep = FALSE;
+                        inst->testAppState = TA_TXE_WAIT;
+                        inst->nextState = TA_TXPOLL_WAIT_SEND ;
+                        break;
+                    }
+                    else{
+                        instance_backtoanchor(inst);
+                    }
+                }
 #endif
+
                 else
                 {
 					inst->txu.txTimeStamp = dw_event->timeStamp;
 
 					if(inst->previousState == TA_TXPOLL_WAIT_SEND)
 					{
-		                uint64 tagCalculatedFinalTxTime ;
+
+		                uint64 tagCalculatedFinalTxTime, tagCalculatedLocTxTime ;
 		                // Embed into Final message: 40-bit pollTXTime,  40-bit respRxTime,  40-bit finalTxTime
 		                if(inst->mode == TAG)
 		                {
 		                	tagCalculatedFinalTxTime =  (inst->txu.txTimeStamp + inst->pollTx2FinalTxDelay) & MASK_TXDTS;
+                            tagCalculatedLocTxTime = (inst->txu.txTimeStamp + inst->pollTx2LocTxDelay) & MASK_TXDTS;
 		                }
 		                else //for anchor make the final half the delay ..... (this is ok, as A0 awaits 2 responses)
 		                {
 		                	tagCalculatedFinalTxTime =  (inst->txu.txTimeStamp + inst->pollTx2FinalTxDelayAnc) & MASK_TXDTS;
 		                }
 		                inst->delayedReplyTime = tagCalculatedFinalTxTime >> 8; //high 32-bits
+                        inst->delayedReplyTimeLOC = tagCalculatedLocTxTime >> 8;
 		                // Calculate Time Final message will be sent and write this field of Final message
 		                // Sending time will be delayedReplyTime, snapped to ~125MHz or ~250MHz boundary by
 		                // zeroing its low 9 bits, and then having the TX antenna delay added
@@ -646,6 +773,9 @@ int testapprun(instance_data_t *inst, int message)
                     //fall into the next case (turn on the RX)
                 }
 
+                if(inst->CoopMode == TRUE){
+                    inst->done = INST_DONE_WAIT_FOR_NEXT_EVENT;
+                }
             }
 
             //break ; // end case TA_TX_WAIT_CONF
@@ -656,6 +786,7 @@ int testapprun(instance_data_t *inst, int message)
         printf("TA_RXE_WAIT\n") ;
 #endif
         {
+
 
             if(inst->wait4ack == 0) //if this is set the RX will turn on automatically after TX
             {
@@ -675,14 +806,23 @@ int testapprun(instance_data_t *inst, int message)
 
             inst->testAppState = TA_RX_WAIT_DATA;   // let this state handle it
 
+            if(inst->CoopMode == TRUE){
+                inst->done = INST_DONE_WAIT_FOR_NEXT_EVENT;
+                inst->stopTimer = 0;
+            }
+
+
             // end case TA_RXE_WAIT, don't break, but fall through into the TA_RX_WAIT_DATA state to process it immediately.
             if(message == 0) break;
         }
 
         case TA_RX_WAIT_DATA : // Wait RX data
-#if defined(DEBUG)
-		   printf("TA_RX_WAIT_DATA %d\n", message) ;
-#endif
+        {
+            if(inst->CoopMode == TRUE){
+                inst->done = INST_DONE_WAIT_FOR_NEXT_EVENT;
+                inst->stopTimer = 0; //clear the flag, as we have received a message
+            }
+
             switch (message)
             {
 
@@ -804,6 +944,7 @@ int testapprun(instance_data_t *inst, int message)
                             case RTLS_DEMO_MSG_ANCH_RESP2:
                             case RTLS_DEMO_MSG_ANCH_RESP:
                             {
+
                             	uint8 currentRangeNum = (messageData[TOFRN] + 1); //current = previous + 1
 
                             	if(GATEWAY_ANCHOR_ADDR == (srcAddr[0] | ((uint32)(srcAddr[1] << 8)))) //if response from gateway then use the correction factor
@@ -842,7 +983,12 @@ int testapprun(instance_data_t *inst, int message)
 										{
 											inst->testAppState = TA_TXE_WAIT ; //go to TA_TXE_WAIT first to check if it's sleep time
 											inst->nextState = TA_TXPOLL_WAIT_SEND ;
-											inst->instToSleep = TRUE;
+#if REPORT_IMP
+											inst->instToSleep = FALSE;
+                                            inst->TimeToChangeToAnch = TRUE;
+#else
+                                            inst->instToSleep = TRUE;
+#endif
 										}
 										else
 										{
@@ -929,29 +1075,31 @@ int testapprun(instance_data_t *inst, int message)
 
                                 }
                                 else{
-                                    if(TAG == inst->mode)
-                                    {
 
-                                        inst->testAppState = TA_TXE_WAIT ; //go to TA_TXE_WAIT first to check if it's sleep time
-                                        inst->nextState = TA_TXLOC_WAIT_SEND ;
-                                        inst->newReportRange = instance_calcranges(&inst->tofArray_reported[0], MAX_ANCHOR_LIST_SIZE, TOF_REPORT_T2A, &inst->rxReportMask);
-                                        inst->rxReportMaskReport = inst->rxReportMask;
-                                        inst->rxReportMask = 0;
-                                        inst->newRangeTime = portGetTickCount() ;
-                                        //inst->instToSleep = TRUE;
+                                        if(TAG == inst->mode)
+                                        {
 
-                                        inst->instToSleep = FALSE;
-                                        inst->TimeToChangeToAnch = TRUE;
-                                    }
-                                    else
-                                    {
-                                        instance_backtoanchor(inst);
-                                    }
+                                            inst->testAppState = TA_TXE_WAIT ; //go to TA_TXE_WAIT first to check if it's sleep time
+                                            inst->nextState = TA_TXLOC_WAIT_SEND ;
+                                            inst->newReportRange = instance_calcranges(&inst->tofArray_reported[0], MAX_ANCHOR_LIST_SIZE, TOF_REPORT_T2A, &inst->rxReportMask);
+                                            inst->rxReportMaskReport = inst->rxReportMask;
+                                            inst->rxReportMask = 0;
+                                            inst->newRangeTime = portGetTickCount() ;
+                                            //inst->instToSleep = TRUE;
+
+                                            inst->instToSleep = FALSE;
+                                            inst->TimeToChangeToAnch = TRUE;
+                                        }
+                                        else
+                                        {
+                                            instance_backtoanchor(inst);
+                                        }
                                 }
 
 
                             	if(currentRangeNum == inst->rangeNum) //these are the previous ranges...
 								{
+
 
 									//copy the ToF and put into array (array holds last 4 ToFs)
 									memcpy(&inst->tofArray_reported[(srcAddr[0]&0x3)], &(messageData[TOFREP]), 4);
@@ -962,6 +1110,7 @@ int testapprun(instance_data_t *inst, int message)
 									//the correct range number but the range will be INVALID_TOF
 									if(inst->tofArray_reported[(srcAddr[0]&0x3)] != INVALID_TOF)
 									{
+
 										inst->rxReportMask |= (0x1 << (srcAddr[0]&0x3));
 									}
 
@@ -1011,9 +1160,6 @@ int testapprun(instance_data_t *inst, int message)
 
                             }
                             break;
-
-
-
 #endif
 
 
@@ -1180,10 +1326,6 @@ int testapprun(instance_data_t *inst, int message)
                 	{
                 		event_data_t* dw_event = instance_getevent(17); //get and clear this event
 
-#if defined(DEBUG)
-						printf("PD_DATA_TIMEOUT %d\n", inst->previousState) ;
-#endif
-
                 		//Anchor can time out and then need to send response - so will be in TX pending
                 		if(dw_event->type_pend == DWT_SIG_TX_PENDING)
                 		{
@@ -1209,10 +1351,13 @@ int testapprun(instance_data_t *inst, int message)
                     }
 
                 	if(inst->done == INST_NOT_DONE_YET) inst->done = INST_DONE_WAIT_FOR_NEXT_EVENT;
+
+
                 }
                 break;
 
             }
+        }
             break ; // end case TA_RX_WAIT_DATA
             default:
 #if defined(DEBUG)
@@ -1240,7 +1385,6 @@ extern uint8 dwnsSFDlen[];
 
 void instancesetreplydelay(int delayus) //delay in us
 {
-
     int instance = 0;
 
     int margin = 3000; //2000 symbols
@@ -1330,6 +1474,7 @@ void instancesetreplydelay(int delayus) //delay in us
 
 	//this is the delay used for the delayed transmit (when sending the response, and final messages)
 	instance_data[instance].pollTx2FinalTxDelay = convertmicrosectodevicetimeu (delayus);
+    instance_data[instance].pollTx2LocTxDelay = convertmicrosectodevicetimeu (3*delayus); // 60 ms (60000)
 	//the anchor to anchor ranging consist of A0 ranging to A1 and A2 and A1 ranging to A2
 	//as there are less messages the ranging time is shorter (thus divide by 2)
 	instance_data[instance].pollTx2FinalTxDelayAnc = convertmicrosectodevicetimeu (delayus/2 + 100);
