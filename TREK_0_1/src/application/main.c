@@ -116,11 +116,11 @@ sfConfig_t sfConfig[4] ={
 					{
 						(68), //ms -
 						(10),   //thus 10 slots - thus 280ms superframe means 3.57 Hz location rate (10 slots are needed as AtoA ranging takes 30+ ms)
-						(10*68), //superframe period
+						(10*28), //superframe period
 						//(10*50),
 						//(10*100), //poll sleep delay
 						//(10*28), //superframe period
-						(10*68), //poll sleep delay
+						(10*28), //poll sleep delay
 						(20000)
 					},
                     //mode 2 - S1: 2 on, 3 off

@@ -417,7 +417,7 @@ void instance_config(instanceConfig_t *config, sfConfig_t *sfConfig)
 
     if(config->preambleLen == DWT_PLEN_64) //if preamble length is 64
 	{
-    	SPI_ConfigFastRate(SPI_BaudRatePrescaler_16); //reduce SPI to < 3MHz
+    	SPI_ConfigFastRate(SPI_BaudRatePrescaler_32); //reduce SPI to < 3MHz
 
 		dwt_loadopsettabfromotp(0);
 

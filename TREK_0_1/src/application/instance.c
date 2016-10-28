@@ -17,7 +17,6 @@
 #include "deca_regs.h"
 
 #include "instance.h"
-
 // -------------------------------------------------------------------------------------------------------------------
 
 
@@ -28,6 +27,7 @@
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // NOTE: the maximum RX timeout is ~ 65ms
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 #define LCD_BUFF_LEN (80)
 uint8 dataseq[LCD_BUFF_LEN];
 
@@ -54,6 +54,8 @@ void instanceconfigframeheader16(instance_data_t *inst)
 
     inst->msg_f.seqNum = 0;
 }
+
+
 
 int instancesenddlypacket(instance_data_t *inst, int delayedTx)
 {
@@ -83,7 +85,7 @@ int instancesenddlypacket(instance_data_t *inst, int delayedTx)
 int instance_calcranges(uint32 *array, uint16 size, int reportRange, uint8* mask)
 {
 	int i;
-	int newRange = TOF_REPORT_NUL;
+    int newRange = TOF_REPORT_NUL;
 	int distance = 0;
 
 	for(i=0; i<size; i++)
@@ -1495,7 +1497,7 @@ void instancesetreplydelay(int delayus) //delay in us
         instance_data[instance].fwtoTimeAnc_syReport = respframe_syReport; //add some margin so we don't timeout too soon
 
 		instance_data[instance].fixedReplyDelayAnc = convertmicrosectodevicetimeu (respframe + RX_RESPONSE1_TURNAROUND_110K);
-        instance_data[instance].fixedReportDelayAnc = 1.5*(instance_data[instance].fixedReplyDelayAnc >> 8);
+        instance_data[instance].fixedReportDelayAnc = 2*(instance_data[instance].fixedReplyDelayAnc >> 8);
 
 
 		instance_data[instance].fixedReplyDelayAncP = (uint32) (((uint64) convertmicrosectodevicetimeu (preamblelen)) >> 8) + 16;

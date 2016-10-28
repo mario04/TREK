@@ -50,8 +50,8 @@ extern "C" {
 *******************************************************************************************************************/
 
 #define NUM_INST            1
+#define NUM_COORD (3)
 #define SPEED_OF_LIGHT      (299702547.0)     // in m/s in air
-#define NUM_COORD (3) // define the number of coordinates system -> defines if the localization is 2D or 3D
 #define MASK_40BIT			(0x00FFFFFFFFFF)  // DW1000 counter is 40 bits
 #define MASK_TXDTS			(0x00FFFFFFFE00)  //The TX timestamp will snap to 8 ns resolution - mask lower 9 bits.
 
@@ -468,7 +468,8 @@ typedef struct
     int saved_longTermRangeCount;
 
 
-	} instance_data_t ;
+
+} instance_data_t ;
 
 //-------------------------------------------------------------------------------------------------------------
 //
@@ -523,7 +524,7 @@ int instancegetrole(void) ;
 // get the DW1000 device ID (e.g. 0xDECA0130 for DW1000)
 uint32 instancereaddeviceid(void) ;                                 // Return Device ID reg, enables validation of physical device presence
 
-double instancegetidist(int idx);
+double finstancegetidist(int idx);
 double instancegetidistraw(int idx);
 int instancegetidist_mm(int idx);
 int instancegetidistraw_mm(int idx);
