@@ -1223,8 +1223,8 @@ int testapprun(instance_data_t *inst, int message)
                                             //inst->anch_pos_estimation[2] = tagPosz/1000.0;
 
 
-                                            sprintf((char*)&dataseq[0], "RX: %3.2f m RY:%3.2f m ", inst->anch_pos_estimation[0], inst->anch_pos_estimation[1]);
-                                            uartWriteLineNoOS((char *) dataseq); //send some data
+//                                            sprintf((char*)&dataseq[0], "RX: %3.2f m RY:%3.2f m ", inst->anch_pos_estimation[0], inst->anch_pos_estimation[1]);
+//                                            uartWriteLineNoOS((char *) dataseq); //send some data
 
                                             // Code for cooperative localization
                                             instance_backtoanchor(inst);

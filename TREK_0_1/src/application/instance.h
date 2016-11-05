@@ -31,7 +31,7 @@ extern "C" {
 
 
 #define COOP_IMP		(0)
-#define REPORT_IMP      (0)              //Report messages implementation. Tag will receive the TOF value from anchor in the slot time
+#define REPORT_IMP      (1)              //Report messages implementation. Tag will receive the TOF value from anchor in the slot time
 
 
 #define CORRECT_RANGE_BIAS  (1)     // Compensate for small bias due to uneven accumulator growth at close up high power
