@@ -114,7 +114,7 @@ chConfig_t chConfig[4] ={
 sfConfig_t sfConfig[4] ={
                     //mode 1 - S1: 2 off, 3 off
 					{
-						(68), //ms -
+						(28), //ms -
 						(10),   //thus 10 slots - thus 280ms superframe means 3.57 Hz location rate (10 slots are needed as AtoA ranging takes 30+ ms)
 						(10*28), //superframe period
 						//(10*50),

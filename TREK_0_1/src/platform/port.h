@@ -22,7 +22,7 @@ extern "C" {
 #include "compiler.h"
 #include "stm32f10x.h"
 
-#define USB_SUPPORT
+//#define USB_SUPPORT
 
 /*****************************************************************************************************************//*
  * To enable LDC update (i.e. printing/outputting range result to LCD set this to 1

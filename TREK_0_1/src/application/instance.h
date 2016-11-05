@@ -29,21 +29,12 @@ extern "C" {
 // when the Anchor is sending the range report back to the Tag, the Tag will enter sleep after a ranging exchange is finished
 // once it receives a report or times out, before the next poll message is sent (before next ranging exchange is started).
 
+
+#define COOP_IMP		(0)
+#define REPORT_IMP      (0)              //Report messages implementation. Tag will receive the TOF value from anchor in the slot time
+
+
 #define CORRECT_RANGE_BIAS  (1)     // Compensate for small bias due to uneven accumulator growth at close up high power
-#define WATCH_REPORT    (0)
-#define REPORT_IMP      (1)              //Report messages implementation. Tag will receive the TOF value from anchor in the slot time
-// Anchor
-//     WATCH_REPORT = 0; REPORT_IMP = 0
-//     WATCH_REPORT = 0; REPORT_IMP = 1
-
-// Tag
-//     WATCH_REPORT = 0; REPORT_IMP = 0
-//     WATCH_REPORT = 0; REPORT_IMP = 1
-//     WATCH_REPORT = 1; REPORT_IMP = 1
-
-
-#define UART_DEBUG (0)
-
 #define ANCTOANCTWR (0) //if set to 1 then anchor to anchor TWR will be done in the last slot
 /******************************************************************************************************************
 *******************************************************************************************************************
@@ -72,7 +63,7 @@ extern "C" {
 #define TAG_POLL_MSG_LEN                    2				// FunctionCode(1), Range Num (1)
 #define ANCH_RESPONSE_MSG_LEN               8               // FunctionCode(1), Sleep Correction Time (2), Measured_TOF_Time(4), Range Num (1) (previous)
 #define ANCH_REPORT_MSG_LEN                 6               // FunctionCode(1), Range Num (1), Measured_TOF_Time(4)
-#define TAG_LOC_MSG_LEN                     26              // FunctionCode(1), Range Num(1), xPosition (8), yPosition(8), zPosition(8)
+#define TAG_LOC_MSG_LEN                     19              // FunctionCode(1), Range Num(1), xPosition (4), yPosition(4), Valid Response Mask (1), LongTermRange (4), RangeTime (4)
 #define TAG_FINAL_MSG_LEN                   33              // FunctionCode(1), Range Num (1), Poll_TxTime(5),
 															// Resp0_RxTime(5), Resp1_RxTime(5), Resp2_RxTime(5), Resp3_RxTime(5), Final_TxTime(5), Valid Response Mask (1)
 
@@ -142,9 +133,10 @@ extern "C" {
 #define TOFREP								2
 #define LOC_RNUM                            1
 #define XLOC_POS                            2
-#define YLOC_POS                            10
-#define ZLOC_POS                            18
-
+#define YLOC_POS                            6
+#define VRESPLOC                            10
+#define LTRANGE								11
+#define RANGETIME							15
 //this it the delay used for configuring the receiver on delay (wait for response delay)
 //NOTE: this RX_RESPONSE_TURNAROUND is dependent on the microprocessor and code optimisations
 #define RX_RESPONSEX_TURNAROUND (50) //takes about 100 us for response to come back
@@ -269,7 +261,19 @@ typedef struct
 /******************************************************************************************************************
 *******************************************************************************************************************
 *******************************************************************************************************************/
+typedef struct
+{
+    uint8 function_code;
+    uint8 rangeNum;
+    float tagxpos;
+    float tagypos;
+    uint8 vresploc;
+    int ltrange;
+    int rangeTime;
+    uint8 newReport;
+    uint8 tagAddr;
 
+}LOC_MSG;
 //size of the event queue, in this application there should be at most 2 unprocessed events,
 //i.e. if there is a transmission with wait for response then the TX callback followed by RX callback could be executed
 //in turn and the event queued up before the instance processed the TX event.
@@ -394,6 +398,8 @@ typedef struct
 	uint8   rxResponseMaskAnc;
 	uint8   rxResponseMask;			// bit mask - bit 0 = received response from anchor ID = 0, bit 1 from anchor ID = 1 etc...
 	uint8   rxResponseMaskReport;
+    uint8   saved_rxResponseMaskReport;
+    uint8   saved_rxReportMaskReport;
 	uint8	rangeNum;				// incremented for each sequence of ranges (each slot)
 	uint8	rangeNumA[MAX_TAG_LIST_SIZE];				// array which holds last range number from each tag
 	uint8	rangeNumAnc;			// incremented for each sequence of ranges (each slot) - anchor to anchor ranging
@@ -453,7 +459,7 @@ typedef struct
     int8 rxReportMaskReport;
 	int8 reportTO;
     int8 test;
-    double anch_pos_estimation[NUM_COORD]; // This must be double?? see the locatlization theread in order to see what kind the varible is it.
+    float anch_pos_estimation[NUM_COORD]; // This must be double?? see the locatlization theread in order to see what kind the varible is it.
     uint8 CoopMode; // Flag to active the cooperative mode
     uint8 TimeToChangeToTag; // Time in which an anchor becomes a tag
     uint8 TimeToChangeToAnch; // Time in which a tag becomes an anchor
@@ -467,6 +473,7 @@ typedef struct
     uint8 saved_frameSN;
     int saved_longTermRangeCount;
 
+    LOC_MSG GW;
 
 
 } instance_data_t ;
