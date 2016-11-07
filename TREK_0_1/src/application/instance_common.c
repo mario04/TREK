@@ -582,12 +582,15 @@ void inst_processrxtimeout(instance_data_t *inst)
         #else
 
             #if COOP_IMP
+                dwt_forcetrxoff();
+
                 inst->testAppState = TA_TXE_WAIT ;
                 inst->nextState = TA_TXLOC_WAIT_SEND ;
                 inst->newReportRange = instance_calcranges(&inst->tofArray_reported[0], MAX_ANCHOR_LIST_SIZE, TOF_REPORT_T2A, &inst->rxReportMask);
                 inst->rxReportMaskReport = inst->rxReportMask;
                 inst->rxReportMask = 0;
                 inst->newRangeTime = portGetTickCount() ;
+
             #else
                 dwt_forcetrxoff();
                 inst->testAppState = TA_TXE_WAIT ; //go to TA_TXE_WAIT first to check if it's sleep time
@@ -860,6 +863,7 @@ uint8 anctxorrxreenable(uint16 sourceAddress, int ancToAncTWR)
 	{
 		dwt_setrxtimeout(0); //reconfigure the timeout
 		dwt_setpreambledetecttimeout(0);
+
 	}
 
 	if((ancToAncTWR & 1) == 1)
@@ -1524,7 +1528,7 @@ void instance_rxcallback(const dwt_callback_data_t *rxd)
                         // uartWriteLineNoOS((char *) dataseq); //send some data
                         // }
                           if((instance_data[instance].shortAdd_idx != (A3_ANCHOR_ADDR & 0x3)))
-                             dw_event.type_pend = DWT_SIG_TX_PENDING ;
+                             instance_backtoanchor(&instance_data[instance]);
 
 
 
@@ -1580,6 +1584,7 @@ void instance_rxcallback(const dwt_callback_data_t *rxd)
                 {
                      instance_data[instance].GW.tagAddr = sourceAddress&0x7;
                      dw_event.type_pend = DWT_SIG_RX_PENDING ;
+                     instance_data[instance].GW.newReport = TRUE;
                     // if(instance_data[instance].GW.tagAddr == 0)
                     // {
                     //     sprintf((char*)&dataseq[0], "Tag0");
@@ -1607,11 +1612,11 @@ void instance_rxcallback(const dwt_callback_data_t *rxd)
 
 
             }
-#if COOP_IMP
+//#if COOP_IMP
 	    	instance_data[instance].stopTimer = 0;
-#else
+//#else
             instance_data[instance].stopTimer = 1;
-#endif
+//#endif
 
             instance_putevent(dw_event, rxd_event);
 
@@ -1806,6 +1811,7 @@ int instance_run(void)
 
 
 
+
     if(done == INST_DONE_WAIT_FOR_NEXT_EVENT_TO) //we are in RX and need to timeout (Tag needs to send another poll if no Rx frame)
     {
         if(instance_data[instance].mode == TAG) //Tag (is either in RX or sleeping)
@@ -1902,6 +1908,7 @@ int instance_run(void)
 
             else if (instance_data[instance].mode == ANCHOR)
             {
+
 
                 instance_data[instance].testAppState = TA_ANCH2TAG_CONF;
                 instance_clearevents();

@@ -30,7 +30,7 @@ extern "C" {
 // once it receives a report or times out, before the next poll message is sent (before next ranging exchange is started).
 
 
-#define COOP_IMP		(0)
+#define COOP_IMP		(1)
 #define REPORT_IMP      (1)              //Report messages implementation. Tag will receive the TOF value from anchor in the slot time
 
 

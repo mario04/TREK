@@ -114,13 +114,13 @@ chConfig_t chConfig[4] ={
 sfConfig_t sfConfig[4] ={
                     //mode 1 - S1: 2 off, 3 off
 					{
-						(28), //ms -
-						(10),   //thus 10 slots - thus 280ms superframe means 3.57 Hz location rate (10 slots are needed as AtoA ranging takes 30+ ms)
-						(10*28), //superframe period
+						(70), //ms -
+						(4),   //thus 10 slots - thus 280ms superframe means 3.57 Hz location rate (10 slots are needed as AtoA ranging takes 30+ ms)
+						(4*70), //superframe period
 						//(10*50),
 						//(10*100), //poll sleep delay
 						//(10*28), //superframe period
-						(10*28), //poll sleep delay
+						(4*70), //poll sleep delay
 						(20000)
 					},
                     //mode 2 - S1: 2 on, 3 off
@@ -560,13 +560,8 @@ int main(void)
 			instance_data[0].monitor = 0;
         }
 
-#if WATCH_REPORT
-		rx = instancenewrangeReport();
-		//rx = instancenewrange();
-#else
-
 		rx = instancenewrange();
-#endif
+
 
         //if there is a new ranging report received or a new range has been calculated, then prepare data
         //to output over USB - Virtual COM port, and update the LCD
