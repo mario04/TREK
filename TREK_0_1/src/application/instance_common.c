@@ -427,7 +427,7 @@ void instance_config(instanceConfig_t *config, sfConfig_t *sfConfig)
 
     if(config->preambleLen == DWT_PLEN_64) //if preamble length is 64
 	{
-    	SPI_ConfigFastRate(SPI_BaudRatePrescaler_32); //reduce SPI to < 3MHz
+    	SPI_ConfigFastRate(SPI_BaudRatePrescaler_16); //reduce SPI to < 3MHz
 
 		dwt_loadopsettabfromotp(0);
 
@@ -564,6 +564,8 @@ void inst_processrxtimeout(instance_data_t *inst)
             inst->TimeToChangeToAnch = TRUE;
             inst->instToSleep = FALSE ;
        		//set sleep to TRUE so that tag will go to DEEP SLEEP before next ranging attempt
+        #elif COOP
+            inst->instToSleep = TRUE ;
         #else
 
             inst->instToSleep = TRUE ;
@@ -586,10 +588,15 @@ void inst_processrxtimeout(instance_data_t *inst)
 
                 inst->testAppState = TA_TXE_WAIT ;
                 inst->nextState = TA_TXLOC_WAIT_SEND ;
-                inst->newReportRange = instance_calcranges(&inst->tofArray_reported[0], MAX_ANCHOR_LIST_SIZE, TOF_REPORT_T2A, &inst->rxReportMask);
-                inst->rxReportMaskReport = inst->rxReportMask;
-                inst->rxReportMask = 0;
+                // inst->newReportRange = instance_calcranges(&inst->tofArray_reported[0], MAX_ANCHOR_LIST_SIZE, TOF_REPORT_T2A, &inst->rxReportMask);
+                // inst->rxReportMaskReport = inst->rxReportMask;
+                // inst->rxReportMask = 0;
                 inst->newRangeTime = portGetTickCount() ;
+            #elif COOP
+                dwt_forcetrxoff();
+                inst->testAppState = TA_TXE_WAIT ; //go to TA_TXE_WAIT first to check if it's sleep time
+                inst->nextState = TA_TXLOC_WAIT_SEND ;
+                inst->instToSleep = FALSE;
 
             #else
                 dwt_forcetrxoff();
@@ -1503,12 +1510,12 @@ void instance_rxcallback(const dwt_callback_data_t *rxd)
  					}
  					break;
 
-                    case RTLS_DEMO_MSG_TAG_LOC:
-                    {
+                     case RTLS_DEMO_MSG_TAG_LOC:
+                     {
 
                         if(instance_data[instance].mode == TAG) //tag should ignore any other Polls from tags
-                        {
-                            //instance_data[instance].responseTO++; //as will be decremented in the function and was also decremented above
+                         {
+                           //instance_data[instance].responseTO++; //as will be decremented in the function and was also decremented above
                             handle_error_unknownframe(dw_event);
 #if COOP_IMP
             instance_data[instance].stopTimer = 0;
@@ -1519,21 +1526,13 @@ void instance_rxcallback(const dwt_callback_data_t *rxd)
                             return;
                         }
 
-                        //if(sourceAddress&0x7 == 0){
-                        // sprintf((char*)&dataseq[0], "Tag0");
-                        // uartWriteLineNoOS((char *) dataseq); //send some data
-                        // }
-                        // else {
-                        //      sprintf((char*)&dataseq[0], "Tag %d", sourceAddress&0x7);
-                        // uartWriteLineNoOS((char *) dataseq); //send some data
-                        // }
                           if((instance_data[instance].shortAdd_idx != (A3_ANCHOR_ADDR & 0x3)))
                              instance_backtoanchor(&instance_data[instance]);
 
 
 
-                    }
-                    break;
+                     }
+                     break;
  #endif
 
 					case RTLS_DEMO_MSG_TAG_FINAL:
@@ -1583,21 +1582,22 @@ void instance_rxcallback(const dwt_callback_data_t *rxd)
                 if (RTLS_DEMO_MSG_TAG_LOC == dw_event.msgu.frame[fcode_index])
                 {
                      instance_data[instance].GW.tagAddr = sourceAddress&0x7;
-                     dw_event.type_pend = DWT_SIG_RX_PENDING ;
+
                      instance_data[instance].GW.newReport = TRUE;
-                    // if(instance_data[instance].GW.tagAddr == 0)
-                    // {
+                    if(instance_data[instance].GW.tagAddr == 0)
+                     {
                     //     sprintf((char*)&dataseq[0], "Tag0");
                     //     uartWriteLineNoOS((char *) dataseq); //send some data
 
-                    // }
-                    // else if(instance_data[instance].GW.tagAddr == 2)
-                    // {
+
+                      }
+                     else if(instance_data[instance].GW.tagAddr == 2)
+                     {
                     //     sprintf((char*)&dataseq[0], "Tagn");
                     //     uartWriteLineNoOS((char *) dataseq); //send some data
+while(1);
 
-
-                    // // }
+                      }
                       //  if(sourceAddress&0x7 == 0){
                         // sprintf((char*)&dataseq[0], "Tag0");
                         // uartWriteLineNoOS((char *) dataseq); //send some data
@@ -1609,6 +1609,7 @@ void instance_rxcallback(const dwt_callback_data_t *rxd)
 
                 }
 
+                return;
 
 
             }
@@ -1905,17 +1906,42 @@ int instance_run(void)
     			instance_putevent(dw_event, DWT_SIG_RX_TIMEOUT);
 
     		}
-
+#if COOP_IMP
             else if (instance_data[instance].mode == ANCHOR)
             {
 
-
-                instance_data[instance].testAppState = TA_ANCH2TAG_CONF;
                 instance_clearevents();
                 instance_data[instance].instanceTimerEn = 0;
                 instance_data[instance].CoopMode = FALSE;
 
+                dwt_forcetrxoff();
+                instancesetrole(TAG);
+                instance_data[instance].instanceAddress16 = instance_data[instance].newRangeTagAddress;
+                memcpy(instance_data[instance].eui64, &instance_data[instance].instanceAddress16, ADDR_BYTE_SIZE_S);
+                dwt_seteui(instance_data[instance].eui64);
+                dwt_setaddress16(instance_data[instance].instanceAddress16);
+                dwt_enableframefilter(DWT_FF_DATA_EN | DWT_FF_ACK_EN); //allow data, ack frames
+                //instanceconfigframeheader16(inst);
+
+                instance_data[instance].testAppState = TA_TXPOLL_WAIT_SEND;
+                instance_data[instance].CoopMode = FALSE;
+                instance_data[instance].TimeToChangeToTag = FALSE;
+                instance_data[instance].TimeToChangeToAnch = FALSE;
+                instanceclearcounts();
+                instance_data[instance].instanceWakeTime = portGetTickCount();
+                instance_data[instance].done = INST_NOT_DONE_YET;
+
+                memcpy(&(instance_data[instance].rangeNumA),&(instance_data[instance].saved_rangeNumA), 8);
+                instance_data[instance].rangeNum = instance_data[instance].saved_rangeNum;
+                //instance_data[instance].tagSleepCorrection = 0;
+                instance_data[instance].delayedReplyTime = instance_data[instance].saved_delayedReplyTime;
+                instance_data[instance].rxTimeouts = instance_data[instance].saved_rxTimeouts;
+                instance_data[instance].frameSN = instance_data[instance].saved_frameSN;
+                instance_data[instance].rxReportMaskReport = instance_data[instance].saved_rxReportMaskReport;
+                instance_data[instance].longTermRangeCount = instance_data[instance].saved_longTermRangeCount;
+
             }
+#endif
         }
 
 #if (ANCTOANCTWR == 1) //allow anchor to anchor ranging

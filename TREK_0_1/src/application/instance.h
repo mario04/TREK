@@ -29,10 +29,10 @@ extern "C" {
 // when the Anchor is sending the range report back to the Tag, the Tag will enter sleep after a ranging exchange is finished
 // once it receives a report or times out, before the next poll message is sent (before next ranging exchange is started).
 
-
-#define COOP_IMP		(1)
+#define COOP            (1)
+#define COOP_IMP		(0)
 #define REPORT_IMP      (1)              //Report messages implementation. Tag will receive the TOF value from anchor in the slot time
-
+#define GATEWAY_NEWFIRM (1)
 
 #define CORRECT_RANGE_BIAS  (1)     // Compensate for small bias due to uneven accumulator growth at close up high power
 #define ANCTOANCTWR (0) //if set to 1 then anchor to anchor TWR will be done in the last slot
