@@ -1021,9 +1021,9 @@ int testapprun(instance_data_t *inst, int message)
                             //                 instance_data[0].GW.vresploc, instance_data[0].GW.tagxpos ,instance_data[0].GW.tagypos,
                             //                     instance_data[0].GW.ltrange, instance_data[0].GW.rangeNum,instance_data[0].GW.rangeTime,
                             //                     't', instance_data[0].GW.tagAddr);
-                            sprintf((char*)&dataseq[0], " hi GW: %d\r\n", instance_data[0].GW.tagAddr);
-                             uartWriteLineNoOS((char *) dataseq); //send some data
-                            instanceclearLOC_MSG();
+//                            sprintf((char*)&dataseq[0], " hi GW: %d\r\n", instance_data[0].GW.tagAddr);
+//                             uartWriteLineNoOS((char *) dataseq); //send some data
+//                            instanceclearLOC_MSG();
 
 
 
