@@ -1,0 +1,23 @@
+10:56:50 **** Incremental Build of configuration Debug for project TREK_0_1 ****
+cs-make all 
+'Building target: TREK_0_1.elf'
+'Invoking: Cross ARM C Linker'
+arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -O0 -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections  -g3 -T "C:\Users\mario\git\TREK\TREK_0_1\Linkers\stm32_flash_256k_ram_64k.ld" -Xlinker --gc-sections -Wl,-Map,"TREK_0_1.map" -o "TREK_0_1.elf"  ./src/usb/deca_usb.o ./src/usb/deca_usb_bsp_evk1000.o ./src/usb/usbd_desc.o ./src/usb/usbd_usr.o  ./src/sys/syscalls.o ./src/sys/unistd.o  ./src/platform/deca_mutex.o ./src/platform/deca_sleep.o ./src/platform/deca_spi.o ./src/platform/dma_spi.o ./src/platform/port.o ./src/platform/stm32f10x_it.o  ./src/decadriver/deca_device.o ./src/decadriver/deca_params_init.o ./src/decadriver/deca_range_tables.o  ./src/application/instance.o ./src/application/instance_calib.o ./src/application/instance_common.o ./src/application/main.o  ./nmea/context.o ./nmea/generate.o ./nmea/generator.o ./nmea/gmath.o ./nmea/info.o ./nmea/parse.o ./nmea/parser.o ./nmea/sentence.o ./nmea/time.o ./nmea/tok.o  ./Libraries/STM32_USB_OTG_Driver/src/usb_core.o ./Libraries/STM32_USB_OTG_Driver/src/usb_dcd.o ./Libraries/STM32_USB_OTG_Driver/src/usb_dcd_int.o ./Libraries/STM32_USB_OTG_Driver/src/usb_hcd.o ./Libraries/STM32_USB_OTG_Driver/src/usb_hcd_int.o  ./Libraries/STM32_USB_Device_Library/Core/src/usbd_core.o ./Libraries/STM32_USB_Device_Library/Core/src/usbd_ioreq.o ./Libraries/STM32_USB_Device_Library/Core/src/usbd_req.o  ./Libraries/STM32_USB_Device_Library/Class/cdc/src/usbd_cdc_core.o ./Libraries/STM32_USB_Device_Library/Class/cdc/src/usbd_cdc_if_template.o  ./Libraries/STM32F10x_StdPeriph_Driver/src/misc.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_adc.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_bkp.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_can.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_cec.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_crc.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_dac.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_dbgmcu.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_dma.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_exti.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_flash.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_fsmc.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_gpio.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_i2c.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_iwdg.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_pwr.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_rcc.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_rtc.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_sdio.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_spi.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_tim.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_usart.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_wwdg.o  ./Libraries/CMSIS/CM3/DeviceSupport/ST/STM32F10x/startup/startup_stm32f10x_cl.o  ./Libraries/CMSIS/CM3/DeviceSupport/ST/STM32F10x/system_stm32f10x.o  ./Libraries/CMSIS/CM3/CoreSupport/core_cm3.o  ./.metadata/.plugins/org.eclipse.cdt.make.core/specs.o   
+'Finished building target: TREK_0_1.elf'
+' '
+cs-make --no-print-directory post-build
+arm-none-eabi-objcopy -S -O binary "TREK_0_1.elf" "TREK_0_1.bin
+' '
+'Invoking: Cross ARM GNU Create Flash Image'
+arm-none-eabi-objcopy -O ihex "TREK_0_1.elf"  "TREK_0_1.hex"
+'Finished building: TREK_0_1.hex'
+' '
+'Invoking: Cross ARM GNU Print Size'
+arm-none-eabi-size --format=berkeley "TREK_0_1.elf"
+   text	   data	    bss	    dec	    hex	filename
+  63924	   1524	  22600	  88048	  157f0	TREK_0_1.elf
+'Finished building: TREK_0_1.siz'
+' '
+
+10:56:53 Build Finished (took 2s.567ms)
+

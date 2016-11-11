@@ -1,0 +1,75 @@
+14:57:22 **** Incremental Build of configuration Debug for project Puente ****
+cs-make all 
+'Building file: ../src/application/instance.c'
+'Invoking: Cross ARM C Compiler'
+arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -O0 -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections  -g3 -DSTM32F10X_CL -DUSE_STDPERIPH_DRIVER -I"C:\Users\mario\Desktop\GW_old\Gateway\Libraries\STM32_USB_OTG_Driver\inc" -I"C:\Users\mario\Desktop\GW_old\Gateway\Libraries\STM32_USB_Device_Library\Class\audio\inc" -I"C:\Users\mario\Desktop\GW_old\Gateway\Libraries\STM32_USB_Device_Library\Class\cdc\inc" -I"C:\Users\mario\Desktop\GW_old\Gateway\Libraries\STM32_USB_Device_Library\Class\dfu\inc" -I"C:\Users\mario\Desktop\GW_old\Gateway\Libraries\STM32_USB_Device_Library\Class\hid\inc" -I"C:\Users\mario\Desktop\GW_old\Gateway\Libraries\STM32_USB_Device_Library\Class\msc\inc" -I"C:\Users\mario\Desktop\GW_old\Gateway\Libraries\STM32_USB_Device_Library\Core\inc" -I"C:\Users\mario\Desktop\GW_old\Gateway\Libraries\STM32F10x_StdPeriph_Driver\inc" -I"C:\Users\mario\Desktop\GW_old\Gateway\Libraries\STM32F10x_StdPeriph_Driver\src" -I"C:\Users\mario\Desktop\GW_old\Gateway\Libraries\CMSIS\CM3\CoreSupport" -I"C:\Users\mario\Desktop\GW_old\Gateway\Libraries\CMSIS\CM3\DeviceSupport\ST\STM32F10x" -I"C:\Users\mario\Desktop\GW_old\Gateway\src\usb" -I"C:\Users\mario\Desktop\GW_old\Gateway\src\application" -I"C:\Users\mario\Desktop\GW_old\Gateway\src\compiler" -I"C:\Users\mario\Desktop\GW_old\Gateway\src\decadriver" -I"C:\Users\mario\Desktop\GW_old\Gateway\src\platform" -I"C:\Users\mario\Desktop\GW_old\Gateway\src\sys" -std=gnu11 -MMD -MP -MF"src/application/instance.d" -MT"src/application/instance.o" -c -o "src/application/instance.o" "../src/application/instance.c"
+In file included from ../src/application/instance.c:13:0:
+C:\Users\mario\Desktop\GW_old\Gateway\src\compiler/compiler.h:46:0: warning: "__always_inline" redefined [enabled by default]
+ #define __always_inline     __attribute__((always_inline))
+ ^
+In file included from c:\apps\sourcery_codebench_lite_for_arm_eabi\arm-none-eabi\include\string.h:12:0,
+                 from C:\Users\mario\Desktop\GW_old\Gateway\src\compiler/compiler.h:24,
+                 from ../src/application/instance.c:13:
+c:\apps\sourcery_codebench_lite_for_arm_eabi\lib\gcc\arm-none-eabi\4.8.3\include-fixed\sys\cdefs.h:317:0: note: this is the location of the previous definition
+ #define __always_inline __attribute__((__always_inline__))
+ ^
+'Finished building: ../src/application/instance.c'
+' '
+'Building file: ../src/application/main.c'
+'Invoking: Cross ARM C Compiler'
+arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -O0 -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections  -g3 -DSTM32F10X_CL -DUSE_STDPERIPH_DRIVER -I"C:\Users\mario\Desktop\GW_old\Gateway\Libraries\STM32_USB_OTG_Driver\inc" -I"C:\Users\mario\Desktop\GW_old\Gateway\Libraries\STM32_USB_Device_Library\Class\audio\inc" -I"C:\Users\mario\Desktop\GW_old\Gateway\Libraries\STM32_USB_Device_Library\Class\cdc\inc" -I"C:\Users\mario\Desktop\GW_old\Gateway\Libraries\STM32_USB_Device_Library\Class\dfu\inc" -I"C:\Users\mario\Desktop\GW_old\Gateway\Libraries\STM32_USB_Device_Library\Class\hid\inc" -I"C:\Users\mario\Desktop\GW_old\Gateway\Libraries\STM32_USB_Device_Library\Class\msc\inc" -I"C:\Users\mario\Desktop\GW_old\Gateway\Libraries\STM32_USB_Device_Library\Core\inc" -I"C:\Users\mario\Desktop\GW_old\Gateway\Libraries\STM32F10x_StdPeriph_Driver\inc" -I"C:\Users\mario\Desktop\GW_old\Gateway\Libraries\STM32F10x_StdPeriph_Driver\src" -I"C:\Users\mario\Desktop\GW_old\Gateway\Libraries\CMSIS\CM3\CoreSupport" -I"C:\Users\mario\Desktop\GW_old\Gateway\Libraries\CMSIS\CM3\DeviceSupport\ST\STM32F10x" -I"C:\Users\mario\Desktop\GW_old\Gateway\src\usb" -I"C:\Users\mario\Desktop\GW_old\Gateway\src\application" -I"C:\Users\mario\Desktop\GW_old\Gateway\src\compiler" -I"C:\Users\mario\Desktop\GW_old\Gateway\src\decadriver" -I"C:\Users\mario\Desktop\GW_old\Gateway\src\platform" -I"C:\Users\mario\Desktop\GW_old\Gateway\src\sys" -std=gnu11 -MMD -MP -MF"src/application/main.d" -MT"src/application/main.o" -c -o "src/application/main.o" "../src/application/main.c"
+In file included from ../src/application/main.c:14:0:
+C:\Users\mario\Desktop\GW_old\Gateway\src\compiler/compiler.h:46:0: warning: "__always_inline" redefined [enabled by default]
+ #define __always_inline     __attribute__((always_inline))
+ ^
+In file included from c:\apps\sourcery_codebench_lite_for_arm_eabi\arm-none-eabi\include\string.h:12:0,
+                 from C:\Users\mario\Desktop\GW_old\Gateway\src\compiler/compiler.h:24,
+                 from ../src/application/main.c:14:
+c:\apps\sourcery_codebench_lite_for_arm_eabi\lib\gcc\arm-none-eabi\4.8.3\include-fixed\sys\cdefs.h:317:0: note: this is the location of the previous definition
+ #define __always_inline __attribute__((__always_inline__))
+ ^
+../src/application/main.c: In function 'addressconfigure':
+../src/application/main.c:193:5: warning: implicit declaration of function 'instancesetaddresses' [-Wimplicit-function-declaration]
+     instancesetaddresses(&ipc);
+     ^
+../src/application/main.c: At top level:
+../src/application/main.c:396:1: warning: initialization from incompatible pointer type [enabled by default]
+ const int (* switch_fn[])(uint16)={ &is_button_low, \
+ ^
+../src/application/main.c:396:1: warning: (near initialization for 'switch_fn[0]') [enabled by default]
+../src/application/main.c:396:1: warning: initialization from incompatible pointer type [enabled by default]
+../src/application/main.c:396:1: warning: (near initialization for 'switch_fn[1]') [enabled by default]
+../src/application/main.c:396:1: warning: initialization from incompatible pointer type [enabled by default]
+../src/application/main.c:396:1: warning: (near initialization for 'switch_fn[2]') [enabled by default]
+../src/application/main.c:396:1: warning: initialization from incompatible pointer type [enabled by default]
+../src/application/main.c:396:1: warning: (near initialization for 'switch_fn[3]') [enabled by default]
+../src/application/main.c:396:1: warning: initialization from incompatible pointer type [enabled by default]
+../src/application/main.c:396:1: warning: (near initialization for 'switch_fn[4]') [enabled by default]
+../src/application/main.c:396:1: warning: initialization from incompatible pointer type [enabled by default]
+../src/application/main.c:396:1: warning: (near initialization for 'switch_fn[5]') [enabled by default]
+../src/application/main.c:396:1: warning: initialization from incompatible pointer type [enabled by default]
+../src/application/main.c:396:1: warning: (near initialization for 'switch_fn[6]') [enabled by default]
+../src/application/main.c: In function 'main':
+../src/application/main.c:673:29: warning: unknown escape sequence: '\040' [enabled by default]
+                             "{\ \"x\":%4.3f,\"y\":%4.3f}",instance_data[0].ISMBmsg.x,instance_data[0].ISMBmsg.y);
+                             ^
+'Finished building: ../src/application/main.c'
+' '
+'Building target: Puente.elf'
+'Invoking: Cross ARM C Linker'
+arm-none-eabi-gcc -mcpu=cortex-m3 -mthumb -O0 -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections  -g3 -T "C:\Users\mario\Desktop\GW_old\Gateway\Linkers\stm32_flash_256k_ram_64k.ld" -Xlinker --gc-sections -Wl,-Map,"Puente.map" -o "Puente.elf"  ./src/usb/usb.o ./src/usb/usb_bsp_evk.o ./src/usb/usbd_cdc_vcp.o ./src/usb/usbd_desc.o ./src/usb/usbd_usr.o  ./src/sys/syscalls.o ./src/sys/unistd.o  ./src/platform/deca_mutex.o ./src/platform/deca_spi.o ./src/platform/dma_spi.o ./src/platform/port.o ./src/platform/stm32f10x_it.o  ./src/decadriver/deca_device.o ./src/decadriver/deca_params_init.o ./src/decadriver/deca_range_tables.o  ./src/application/instance.o ./src/application/instance_calib.o ./src/application/instance_common.o ./src/application/instance_fast2wr_a.o ./src/application/instance_fast2wr_c.o ./src/application/instance_fast2wr_t.o ./src/application/main.o  ./Libraries/STM32_USB_OTG_Driver/src/usb_core.o ./Libraries/STM32_USB_OTG_Driver/src/usb_dcd.o ./Libraries/STM32_USB_OTG_Driver/src/usb_dcd_int.o ./Libraries/STM32_USB_OTG_Driver/src/usb_hcd.o ./Libraries/STM32_USB_OTG_Driver/src/usb_hcd_int.o  ./Libraries/STM32_USB_Device_Library/Core/src/usbd_core.o ./Libraries/STM32_USB_Device_Library/Core/src/usbd_ioreq.o ./Libraries/STM32_USB_Device_Library/Core/src/usbd_req.o  ./Libraries/STM32_USB_Device_Library/Class/cdc/src/usbd_cdc_core.o ./Libraries/STM32_USB_Device_Library/Class/cdc/src/usbd_cdc_if_template.o  ./Libraries/STM32F10x_StdPeriph_Driver/src/misc.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_adc.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_bkp.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_can.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_cec.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_crc.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_dac.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_dbgmcu.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_dma.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_exti.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_flash.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_fsmc.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_gpio.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_i2c.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_iwdg.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_pwr.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_rcc.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_rtc.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_sdio.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_spi.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_tim.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_usart.o ./Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_wwdg.o  ./Libraries/CMSIS/CM3/DeviceSupport/ST/STM32F10x/startup/startup_stm32f10x_cl.o  ./Libraries/CMSIS/CM3/DeviceSupport/ST/STM32F10x/system_stm32f10x.o  ./Libraries/CMSIS/CM3/CoreSupport/core_cm3.o  ./.metadata/.plugins/org.eclipse.cdt.make.core/specs.o   
+'Finished building target: Puente.elf'
+' '
+cs-make --no-print-directory post-build
+arm-none-eabi-objcopy -S -O binary "Puente.elf" "Puente.bin
+' '
+'Invoking: Cross ARM GNU Create Flash Image'
+arm-none-eabi-objcopy -O ihex "Puente.elf"  "Puente.hex"
+'Finished building: Puente.hex'
+' '
+'Invoking: Cross ARM GNU Print Size'
+arm-none-eabi-size --format=berkeley "Puente.elf"
+   text	   data	    bss	    dec	    hex	filename
+  83548	   1872	  31192	 116612	  1c784	Puente.elf
+'Finished building: Puente.siz'
+' '
